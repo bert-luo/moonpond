@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://particles_dust1"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_dust"]
+direction = Vector3(0, -1, 0)
+spread = 30.0
+initial_velocity_min = 5.0
+initial_velocity_max = 20.0
+gravity = Vector3(0, -10, 0)
+scale_min = 2.0
+scale_max = 5.0
+color = Color(0.8, 0.8, 0.8, 0.5)
+
+[node name="Dust" type="GPUParticles2D"]
+amount = 16
+lifetime = 3.0
+one_shot = false
+explosiveness = 0.0
+process_material = SubResource("ParticleProcessMaterial_dust")
