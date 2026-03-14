@@ -9,8 +9,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Setup
 
-- [ ] **SETUP-01**: Godot 4.5.1 headless binary and export templates are installed via a setup script and verified at server startup
-- [ ] **SETUP-02**: Frontend dev server serves WASM game files with correct COOP/COEP headers (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`)
+- [x] **SETUP-01**: Godot 4.5.1 headless binary and export templates are installed via a setup script and verified at server startup
+- [x] **SETUP-02**: Frontend dev server serves WASM game files with correct COOP/COEP headers (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: require-corp`)
 
 ### Godot Templates
 
@@ -92,8 +92,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SETUP-01 | Phase 1 | Pending |
-| SETUP-02 | Phase 1 | Pending |
+| SETUP-01 | Phase 1 | Complete |
+| SETUP-02 | Phase 1 | Complete |
 | TMPL-01 | Phase 1 | Complete |
 | TMPL-02 | Phase 1 | Pending |
 | TMPL-03 | Phase 1 | Pending |
