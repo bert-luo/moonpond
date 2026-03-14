@@ -62,7 +62,11 @@ Plans:
   3. The generated game's GDScript files use Godot 4 syntax exclusively and reference only the named input actions defined in the base_2d template
   4. The Visual Polisher stage's output includes at least one shader reference and one palette selection from the template asset library in the generated code
   5. If the Code Generator produces a GDScript syntax error, the pipeline automatically retries with compiler output in context (up to 2 attempts) before failing
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 03-01-PLAN.md — Anthropic SDK, Pydantic stage models, Prompt Enhancer and Game Designer stages
+- [ ] 03-02-PLAN.md — Code Generator, Visual Polisher, and Exporter stages
+- [ ] 03-03-PLAN.md — MultiStagePipeline wiring with self-correction, registry, and test suite
 
 ### Phase 4: Frontend Integration
 **Goal**: A browser application where a user types a prompt, watches real-time stage progress, and receives a playable game in an iframe — with error states handled
@@ -86,5 +90,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Scaffold and Godot Template | 2/4 | In Progress|  |
 | 2. Backend Pipeline Foundation | 3/3 | Complete   | 2026-03-14 |
-| 3. Multi-Stage Pipeline | 0/TBD | Not started | - |
+| 3. Multi-Stage Pipeline | 0/3 | Not started | - |
 | 4. Frontend Integration | 0/TBD | Not started | - |
