@@ -26,8 +26,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PIPE-01**: Backend exposes `POST /api/generate` that accepts a prompt and returns a `job_id` immediately
 - [ ] **PIPE-02**: Backend exposes `GET /api/stream/{job_id}` that streams `ProgressEvent` SSE messages for the job
 - [ ] **PIPE-03**: Backend serves generated WASM files at `/games/{job_id}/export/` as static files
-- [ ] **PIPE-04**: Pipeline registry maps strategy names to `GamePipeline` Protocol implementations; active pipeline is resolved from request
-- [ ] **PIPE-05**: Godot headless runner executes export asynchronously (non-blocking), captures stderr, and validates output file existence (not exit code)
+- [x] **PIPE-04**: Pipeline registry maps strategy names to `GamePipeline` Protocol implementations; active pipeline is resolved from request
+- [x] **PIPE-05**: Godot headless runner executes export asynchronously (non-blocking), captures stderr, and validates output file existence (not exit code)
 
 ### Multi-Stage MVP Pipeline
 
@@ -103,8 +103,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PIPE-01 | Phase 2 | Pending |
 | PIPE-02 | Phase 2 | Pending |
 | PIPE-03 | Phase 2 | Pending |
-| PIPE-04 | Phase 2 | Pending |
-| PIPE-05 | Phase 2 | Pending |
+| PIPE-04 | Phase 2 | Complete |
+| PIPE-05 | Phase 2 | Complete |
 | STAGE-01 | Phase 3 | Pending |
 | STAGE-02 | Phase 3 | Pending |
 | STAGE-03 | Phase 3 | Pending |
