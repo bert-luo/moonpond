@@ -30,7 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. The base_2d template project contains shader library files (pixel_art, glow, scanlines, chromatic_aberration, screen_distortion), particle scenes (explosion, dust, sparkle, trail), and palette resources (neon, retro, pastel, monochrome) committed to the repo
   4. The base_2d template's input map defines all eight standard named actions (move_left, move_right, move_up, move_down, jump, shoot, interact, pause)
   5. Opening the game WASM file in a browser (served with COOP/COEP headers) shows a blank running game with no console errors
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 01-01-PLAN.md — Monorepo scaffold, setup/verify scripts, Next.js COOP/COEP config
+- [ ] 01-02-PLAN.md — base_2d core project files (project.godot, export_presets.cfg, Main.tscn, game_manager.gd)
+- [ ] 01-03-PLAN.md — Shader library (5 shaders) and control snippet scripts (4 GDScript files)
+- [ ] 01-04-PLAN.md — Particle scenes (4 GPUParticles2D .tscn) and palette resources (4 Gradient .tres)
 
 ### Phase 2: Backend Pipeline Foundation
 **Goal**: A FastAPI backend with working SSE streaming, a pipeline registry, and a Godot headless runner — ready to receive stage module implementations
@@ -75,7 +80,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Scaffold and Godot Template | 0/TBD | Not started | - |
+| 1. Scaffold and Godot Template | 0/4 | Not started | - |
 | 2. Backend Pipeline Foundation | 0/TBD | Not started | - |
 | 3. Multi-Stage Pipeline | 0/TBD | Not started | - |
 | 4. Frontend Integration | 0/TBD | Not started | - |
