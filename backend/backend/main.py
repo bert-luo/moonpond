@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from collections.abc import AsyncIterable
 from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
@@ -60,33 +59,25 @@ async def generate(
     return GenerateResponse(job_id=job_id)
 
 
-@app.get("/api/stream/{job_id}")
-async def stream(job_id: str) -> EventSourceResponse:
+@app.get("/api/stream/{job_id}", response_class=EventSourceResponse)
+async def stream(job_id: str):
     """Stream SSE ProgressEvent messages for a running job."""
+    if job_id not in active_jobs:
+        yield ServerSentEvent(data={"error": "job not found"}, event="error")
+        return
 
-    async def event_generator() -> AsyncIterable[ServerSentEvent]:
-        if job_id not in active_jobs:
-            yield ServerSentEvent(data='{"error": "job not found"}', event="error")
-            return
-
-        queue = active_jobs[job_id]
-        try:
-            while True:
-                event = await asyncio.wait_for(queue.get(), timeout=120)
-                if event is None:
-                    del active_jobs[job_id]
-                    return
-                yield ServerSentEvent(
-                    data=event.model_dump_json(), event=event.type
-                )
-        except asyncio.TimeoutError:
-            yield ServerSentEvent(
-                data='{"error": "stream timeout"}', event="error"
-            )
-            if job_id in active_jobs:
+    queue = active_jobs[job_id]
+    try:
+        while True:
+            event = await asyncio.wait_for(queue.get(), timeout=120)
+            if event is None:
                 del active_jobs[job_id]
-
-    return EventSourceResponse(event_generator())
+                return
+            yield ServerSentEvent(data=event.model_dump_json(), event=event.type)
+    except asyncio.TimeoutError:
+        yield ServerSentEvent(data={"error": "stream timeout"}, event="error")
+        if job_id in active_jobs:
+            del active_jobs[job_id]
 
 
 # Mount static files AFTER route definitions (defensive ordering)
