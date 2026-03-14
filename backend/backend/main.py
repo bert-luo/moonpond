@@ -16,6 +16,9 @@ from .models.responses import GenerateResponse
 from .pipelines.registry import PIPELINES
 from .state import active_jobs
 
+HEARTBEAT_INTERVAL_S: int = 15
+"""Seconds between SSE heartbeat comments when the pipeline queue is idle."""
+
 app = FastAPI(title="Moonpond")
 
 # CORS for frontend dev server
