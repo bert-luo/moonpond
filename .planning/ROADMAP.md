@@ -13,7 +13,7 @@ Moonpond is built in four phases, each gated by the previous. Phase 1 establishe
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Scaffold and Godot Template** - Monorepo structure, Godot 4.5.1 setup, base_2d template that exports clean WASM with shader/palette/particle assets
-- [ ] **Phase 2: Backend Pipeline Foundation** - FastAPI app, SSE streaming endpoints, pipeline registry, Godot headless runner
+- [x] **Phase 2: Backend Pipeline Foundation** - FastAPI app, SSE streaming endpoints, pipeline registry, Godot headless runner (completed 2026-03-14)
 - [ ] **Phase 3: Multi-Stage Pipeline** - All five pipeline stages, self-correction pass, end-to-end CLI proof
 - [ ] **Phase 4: Frontend Integration** - Two-column Next.js UI wired to working pipeline, full user flow end-to-end
 - [ ] **Phase 5: E2E Optimization** - Await further instructions based on results of previous phases
@@ -84,6 +84,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Scaffold and Godot Template | 2/4 | In Progress|  |
-| 2. Backend Pipeline Foundation | 0/2 | Not started | - |
+| 2. Backend Pipeline Foundation | 2/2 | Complete   | 2026-03-14 |
 | 3. Multi-Stage Pipeline | 0/TBD | Not started | - |
 | 4. Frontend Integration | 0/TBD | Not started | - |
