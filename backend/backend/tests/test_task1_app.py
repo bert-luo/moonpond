@@ -26,13 +26,22 @@ def test_stub_pipeline_importable():
 @pytest.mark.anyio
 async def test_generate_endpoint_returns_job_id():
     """POST /api/generate should return 200 with a job_id."""
+    from unittest.mock import AsyncMock, patch
+    from pathlib import Path
     from httpx import ASGITransport, AsyncClient
     from backend.main import app
+    from backend.godot.runner import RunResult
 
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
-        resp = await client.post("/api/generate", json={"prompt": "test"})
+    mock_result = RunResult(success=True, stderr="", output_path=Path("/tmp/fake"))
+    with patch(
+        "backend.pipelines.stub.pipeline.run_headless_export",
+        new_callable=AsyncMock,
+        return_value=mock_result,
+    ):
+        async with AsyncClient(
+            transport=ASGITransport(app=app), base_url="http://test"
+        ) as client:
+            resp = await client.post("/api/generate", json={"prompt": "test"})
     assert resp.status_code == 200
     data = resp.json()
     assert "job_id" in data
