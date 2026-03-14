@@ -38,12 +38,12 @@ created: 2026-03-14
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 03-01-01 | 01 | 1 | STAGE-01 | unit | `cd backend && uv run pytest backend/tests/test_prompt_enhancer.py -v` | ❌ W0 | ⬜ pending |
-| 03-01-02 | 01 | 1 | STAGE-02 | unit | `cd backend && uv run pytest backend/tests/test_game_designer.py -v` | ❌ W0 | ⬜ pending |
-| 03-02-01 | 02 | 1 | STAGE-03 | unit | `cd backend && uv run pytest backend/tests/test_code_generator.py -v` | ❌ W0 | ⬜ pending |
-| 03-02-02 | 02 | 1 | STAGE-04 | unit | `cd backend && uv run pytest backend/tests/test_visual_polisher.py -v` | ❌ W0 | ⬜ pending |
-| 03-03-01 | 03 | 2 | STAGE-05 | integration | `cd backend && uv run pytest backend/tests/test_exporter.py -v` | ❌ W0 | ⬜ pending |
-| 03-03-02 | 03 | 2 | STAGE-06 | integration | `cd backend && uv run pytest backend/tests/test_multi_stage.py -v` | ❌ W0 | ⬜ pending |
+| 03-01-01 | 01 | 1 | STAGE-01, STAGE-06 | import | `cd backend && uv run python -c "from backend.stages.models import GameSpec, GameDesign; print('OK')"` | n/a (import check) | ⬜ pending |
+| 03-01-02 | 01 | 1 | STAGE-02 | import | `cd backend && uv run python -c "from backend.stages.prompt_enhancer import run_prompt_enhancer; from backend.stages.game_designer import run_game_designer; print('OK')"` | n/a (import check) | ⬜ pending |
+| 03-02-01 | 02 | 2 | STAGE-03 | import | `cd backend && uv run python -c "from backend.stages.code_generator import run_code_generator; print('OK')"` | n/a (import check) | ⬜ pending |
+| 03-02-02 | 02 | 2 | STAGE-04, STAGE-05 | import | `cd backend && uv run python -c "from backend.stages.visual_polisher import run_visual_polisher; from backend.stages.exporter import run_exporter; print('OK')"` | n/a (import check) | ⬜ pending |
+| 03-03-01 | 03 | 3 | STAGE-01 to STAGE-06 | unit | `cd backend && uv run pytest backend/backend/tests/test_stages.py -v` | ❌ W3 | ⬜ pending |
+| 03-03-02 | 03 | 3 | STAGE-06 | integration | `cd backend && uv run pytest backend/backend/tests/test_multi_stage_pipeline.py -v` | ❌ W3 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -51,13 +51,9 @@ created: 2026-03-14
 
 ## Wave 0 Requirements
 
-- [ ] `backend/tests/test_prompt_enhancer.py` — stubs for STAGE-01
-- [ ] `backend/tests/test_game_designer.py` — stubs for STAGE-02
-- [ ] `backend/tests/test_code_generator.py` — stubs for STAGE-03
-- [ ] `backend/tests/test_visual_polisher.py` — stubs for STAGE-04
-- [ ] `backend/tests/test_exporter.py` — stubs for STAGE-05
-- [ ] `backend/tests/test_multi_stage.py` — stubs for STAGE-06 (SSE events per stage)
-- [ ] `uv add anthropic` — add Anthropic SDK dependency
+Wave 1 and Wave 2 tasks use import-only verification (no test files needed). Test files are created in Wave 3 (Plan 03-03).
+
+- [ ] `uv add anthropic` — add Anthropic SDK dependency (Plan 03-01, Task 1)
 
 ---
 
