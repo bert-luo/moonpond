@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-03-14T08:02:09.179Z"
-last_activity: 2026-03-14 — Completed 01-01-PLAN.md
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-03-14T08:05:40.736Z"
+last_activity: 2026-03-14 — Completed 01-04-PLAN.md
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 2
-  percent: 25
+  completed_plans: 4
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 1 of 4 (Scaffold and Godot Template)
-Plan: 1 of 4 in current phase
+Plan: 4 of 4 in current phase
 Status: Executing
-Last activity: 2026-03-14 — Completed 01-01-PLAN.md
+Last activity: 2026-03-14 — Completed 01-04-PLAN.md
 
-Progress: [███░░░░░░░] 25%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -52,6 +52,8 @@ Progress: [███░░░░░░░] 25%
 *Updated after each plan completion*
 | Phase 01 P02 | 2min | 2 tasks | 5 files |
 | Phase 01 P01 | 2min | 3 tasks | 10 files |
+| Phase 01 P04 | 2min | 2 tasks | 8 files |
+| Phase 01 P03 | 1min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -66,6 +68,9 @@ Recent decisions affecting current work:
 - [Phase 01]: 8 input actions defined as contract between template and LLM Code Generator
 - [Phase 01]: export_path left empty in export_presets.cfg -- CLI provides path at export time
 - [Phase 01]: Shell scripts use set -euo pipefail and SCRIPT_DIR anchoring as standard pattern
+- [Phase 01]: Hand-authored .tscn/.tres files in Godot text format -- UIDs regenerated on first editor load
+- [Phase 01]: Shaders expose uniforms as LLM-configurable API surface via material.set_shader_parameter()
+- [Phase 01]: Control snippets use @export for all tunable parameters, standalone attachment to any Node2D
 
 ### Pending Todos
 
@@ -78,6 +83,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-14T08:02:09.176Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-03-14T08:05:40.733Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None

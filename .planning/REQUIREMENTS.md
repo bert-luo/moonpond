@@ -16,8 +16,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **TMPL-01**: base_2d Godot 4 project template exports a clean blank WASM game with no errors via headless export
 - [ ] **TMPL-02**: base_2d template includes a shader library (pixel_art, glow, scanlines, chromatic_aberration, screen_distortion)
-- [ ] **TMPL-03**: base_2d template includes a particle scene library (explosion, dust, sparkle, trail)
-- [ ] **TMPL-04**: base_2d template includes curated color palette resources (neon, retro, pastel, monochrome as Gradient .tres files)
+- [x] **TMPL-03**: base_2d template includes a particle scene library (explosion, dust, sparkle, trail)
+- [x] **TMPL-04**: base_2d template includes curated color palette resources (neon, retro, pastel, monochrome as Gradient .tres files)
 - [x] **TMPL-05**: base_2d template pre-defines a standard input action map (move_left, move_right, move_up, move_down, jump, shoot, interact, pause)
 - [ ] **TMPL-06**: base_2d template includes control snippet scripts (mouse_follow, click_to_move, drag, point_and_shoot)
 
@@ -96,8 +96,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SETUP-02 | Phase 1 | Complete |
 | TMPL-01 | Phase 1 | Complete |
 | TMPL-02 | Phase 1 | Pending |
-| TMPL-03 | Phase 1 | Pending |
-| TMPL-04 | Phase 1 | Pending |
+| TMPL-03 | Phase 1 | Complete |
+| TMPL-04 | Phase 1 | Complete |
 | TMPL-05 | Phase 1 | Complete |
 | TMPL-06 | Phase 1 | Pending |
 | PIPE-01 | Phase 2 | Pending |
