@@ -70,17 +70,30 @@ async def stream(job_id: str):
         return
 
     queue = active_jobs[job_id]
+    deadline = asyncio.get_event_loop().time() + 120
     try:
         while True:
-            event = await asyncio.wait_for(queue.get(), timeout=120)
+            remaining = deadline - asyncio.get_event_loop().time()
+            if remaining <= 0:
+                break
+            wait = min(HEARTBEAT_INTERVAL_S, remaining)
+            try:
+                event = await asyncio.wait_for(queue.get(), timeout=wait)
+            except asyncio.TimeoutError:
+                if asyncio.get_event_loop().time() >= deadline:
+                    break
+                yield ServerSentEvent(comment="ping")
+                continue
             if event is None:
                 del active_jobs[job_id]
                 return
             yield ServerSentEvent(data=event.model_dump_json(), event=event.type)
-    except asyncio.TimeoutError:
-        yield ServerSentEvent(data={"error": "stream timeout"}, event="error")
-        if job_id in active_jobs:
-            del active_jobs[job_id]
+    except Exception:
+        pass
+    # Total timeout reached
+    yield ServerSentEvent(data={"error": "stream timeout"}, event="error")
+    if job_id in active_jobs:
+        del active_jobs[job_id]
 
 
 # Mount static files AFTER route definitions (defensive ordering)
