@@ -46,10 +46,11 @@ Plans:
   2. `GET /api/stream/{job_id}` streams SSE `ProgressEvent` messages and sends a heartbeat every 15 seconds without dropping the connection
   3. A stub pipeline registered in the registry runs, copies the base_2d template, writes a dummy GDScript file, and the resulting WASM is accessible at `/games/{job_id}/export/`
   4. The Godot runner executes headless export non-blocking (does not freeze the FastAPI event loop), captures stderr, and validates output file existence rather than exit code
-**Plans**: 2 plans
+**Plans**: 3 plans
 Plans:
 - [ ] 02-01-PLAN.md — Python project setup, type contracts (models, Protocol, registry), Godot headless runner
 - [ ] 02-02-PLAN.md — FastAPI app with SSE endpoints, stub pipeline, test suite for all PIPE requirements
+- [ ] 02-03-PLAN.md — Gap closure: Add 15-second SSE heartbeat to stream endpoint
 
 ### Phase 3: Multi-Stage Pipeline
 **Goal**: A complete working pipeline that takes a text prompt and produces a playable WASM game via five sequential LLM-powered stages with self-correction
@@ -84,6 +85,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Scaffold and Godot Template | 2/4 | In Progress|  |
-| 2. Backend Pipeline Foundation | 2/2 | Complete   | 2026-03-14 |
+| 2. Backend Pipeline Foundation | 2/3 | Gap Closure | - |
 | 3. Multi-Stage Pipeline | 0/TBD | Not started | - |
 | 4. Frontend Integration | 0/TBD | Not started | - |
