@@ -78,7 +78,10 @@ Plans:
   3. The Asset Generator emits a `ProgressEvent` SSE message visible in the stream
   4. All API keys are loaded from `.env` via python-dotenv; no hardcoded keys in source
   5. The pipeline still completes end-to-end (prompt → WASM) with asset generation enabled
-**Plans**: TBD
+**Plans**: 2 plans
+Plans:
+- [ ] 03.1-01-PLAN.md — ImageProvider Protocol, OpenAI + Google providers, provider registry, python-dotenv integration
+- [ ] 03.1-02-PLAN.md — Asset Generator stage, AssetManifest type, MultiStagePipeline integration
 
 ### Phase 4: Frontend Integration
 **Goal**: A browser application where a user types a prompt, watches real-time stage progress, and receives a playable game in an iframe — with error states handled
@@ -103,4 +106,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Scaffold and Godot Template | 2/4 | In Progress|  |
 | 2. Backend Pipeline Foundation | 3/3 | Complete   | 2026-03-14 |
 | 3. Multi-Stage Pipeline | 0/3 | Not started | - |
+| 3.1 Asset Generation Pipeline | 0/2 | Not started | - |
 | 4. Frontend Integration | 0/TBD | Not started | - |
