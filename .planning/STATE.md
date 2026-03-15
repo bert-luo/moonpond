@@ -80,6 +80,10 @@ Recent decisions affecting current work:
 - [Phase 02]: All endpoint tests mock run_headless_export to avoid Godot binary dependency
 - [Phase 02]: SSE heartbeat uses deadline-based total timeout with asyncio event loop time
 
+### Roadmap Evolution
+
+- Phase 03.1 inserted after Phase 3: Asset Generation Pipeline (URGENT) — configurable image gen (OpenAI/Google) for sprites, backgrounds, textures; ImageProvider protocol for swappable providers
+
 ### Pending Todos
 
 None yet.

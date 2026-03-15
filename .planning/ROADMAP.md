@@ -68,6 +68,18 @@ Plans:
 - [ ] 03-02-PLAN.md — Code Generator, Visual Polisher, and Exporter stages
 - [ ] 03-03-PLAN.md — MultiStagePipeline wiring with self-correction, registry, and test suite
 
+### Phase 03.1: Asset Generation Pipeline (INSERTED)
+**Goal**: A configurable image generation system with swappable providers (OpenAI/Google) that produces sprites, backgrounds, and textures for generated games, integrated into the multi-stage pipeline
+**Depends on**: Phase 3
+**Requirements**: ASSET-01, ASSET-02, ASSET-03, ASSET-04, ASSET-05, ASSET-06
+**Success Criteria** (what must be TRUE):
+  1. Switching `IMAGE_PROVIDER=openai` to `IMAGE_PROVIDER=google` (or vice versa) in `.env` changes which API is called without any code changes
+  2. The Asset Generator stage produces at least one `.png` file in `assets/generated/` for a test prompt, and the generated GDScript references it
+  3. The Asset Generator emits a `ProgressEvent` SSE message visible in the stream
+  4. All API keys are loaded from `.env` via python-dotenv; no hardcoded keys in source
+  5. The pipeline still completes end-to-end (prompt → WASM) with asset generation enabled
+**Plans**: TBD
+
 ### Phase 4: Frontend Integration
 **Goal**: A browser application where a user types a prompt, watches real-time stage progress, and receives a playable game in an iframe — with error states handled
 **Depends on**: Phase 3

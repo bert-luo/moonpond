@@ -60,6 +60,11 @@ Deliverable: a `multi_stage` pipeline registered in the registry that runs end-t
 - Runs Godot headless export using the existing `runner.py` (from Phase 2)
 - Returns the WASM output path in `GameResult`
 
+### Environment / API Keys
+- All API keys stored in `.env` at repo root (ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, TRIPO_API_KEY)
+- Use `python-dotenv` to load `.env` in the backend
+- Phase 3 only needs ANTHROPIC_API_KEY; other keys used in Phase 3.1 (asset generation)
+
 ### Existing Infrastructure (from Phase 2)
 - `GamePipeline` Protocol, `ProgressEvent`, `GameResult`, `EmitFn` in `pipelines/base.py`
 - `PIPELINES` registry in `pipelines/registry.py` — add `"multi_stage"` entry
@@ -128,6 +133,7 @@ The entire pipeline must complete within 90 seconds. Budget should be weighted t
 <deferred>
 ## Deferred Ideas
 
+- AI image generation for sprites/backgrounds/textures → Phase 3.1 (ImageProvider protocol, OpenAI/Google providers, Asset Generator stage)
 - Single-shot agentic pipeline (future pipeline strategy)
 - ROMA multi-agent pipeline (future pipeline strategy)
 - Playwright visual feedback loop (future quality signal)

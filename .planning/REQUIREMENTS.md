@@ -49,6 +49,15 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **FE-07**: User sees an error message in ChatPanel if generation fails (LLM error, export failure, or timeout)
 - [ ] **FE-08**: Prompt input resets after game loads; user can submit a new prompt
 
+### Asset Generation Pipeline
+
+- [ ] **ASSET-01**: An `ImageProvider` protocol defines a uniform interface for image generation; providers for OpenAI (DALL-E) and Google (Imagen) implement it and can be swapped via configuration
+- [ ] **ASSET-02**: An Asset Generator stage takes the `GameDesign` output and produces sprite, background, and texture image files written into the Godot project directory
+- [ ] **ASSET-03**: The Asset Generator stage emits a `ProgressEvent` SSE message at its start (e.g. "Generating visual assets...")
+- [ ] **ASSET-04**: Generated image assets are saved as `.png` files in the Godot project's `assets/generated/` directory and referenced by the Code Generator / Visual Polisher stages
+- [ ] **ASSET-05**: The active image provider is configurable via environment variable (`IMAGE_PROVIDER=openai|google`) without code changes
+- [ ] **ASSET-06**: API keys are loaded from `.env` file at repo root via `python-dotenv`
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -111,6 +120,12 @@ Which phases cover which requirements. Updated during roadmap creation.
 | STAGE-04 | Phase 3 | Pending |
 | STAGE-05 | Phase 3 | Pending |
 | STAGE-06 | Phase 3 | Pending |
+| ASSET-01 | Phase 3.1 | Pending |
+| ASSET-02 | Phase 3.1 | Pending |
+| ASSET-03 | Phase 3.1 | Pending |
+| ASSET-04 | Phase 3.1 | Pending |
+| ASSET-05 | Phase 3.1 | Pending |
+| ASSET-06 | Phase 3.1 | Pending |
 | FE-01 | Phase 4 | Pending |
 | FE-02 | Phase 4 | Pending |
 | FE-03 | Phase 4 | Pending |
@@ -121,10 +136,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FE-08 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 27 total
-- Mapped to phases: 27
+- v1 requirements: 33 total
+- Mapped to phases: 33
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-03-13*
-*Last updated: 2026-03-13 after roadmap creation*
+*Last updated: 2026-03-14 after Phase 3.1 insertion*
