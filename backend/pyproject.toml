@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.135.0",
     "aiofiles",
+    "anthropic>=0.84.0",
 ]
 
 [project.optional-dependencies]
