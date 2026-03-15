@@ -105,6 +105,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Scaffold and Godot Template | 2/4 | In Progress|  |
 | 2. Backend Pipeline Foundation | 3/3 | Complete   | 2026-03-14 |
-| 3. Multi-Stage Pipeline | 1/3 | In Progress | - |
+| 3. Multi-Stage Pipeline | 2/3 | In Progress|  |
 | 3.1 Asset Generation Pipeline | 0/2 | Not started | - |
 | 4. Frontend Integration | 0/TBD | Not started | - |

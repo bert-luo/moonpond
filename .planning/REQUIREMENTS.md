@@ -33,9 +33,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **STAGE-01**: Prompt Enhancer stage takes raw user prompt and outputs a structured game spec (title, genre, mechanics, visual hints)
 - [x] **STAGE-02**: Game Designer stage produces a full `GameDesign` model (scenes, visual_style, control_scheme, controls list, win/fail conditions)
-- [ ] **STAGE-03**: Code Generator stage produces GDScript files per scene using Godot 4 syntax exclusively; uses named input actions from the template
-- [ ] **STAGE-04**: Visual Polisher stage reviews generated code and applies shader references, palette selections, and particle scenes from the template asset library
-- [ ] **STAGE-05**: Exporter stage copies the base_2d template, writes generated GDScript files, runs Godot headless export, and returns the WASM output path
+- [x] **STAGE-03**: Code Generator stage produces GDScript files per scene using Godot 4 syntax exclusively; uses named input actions from the template
+- [x] **STAGE-04**: Visual Polisher stage reviews generated code and applies shader references, palette selections, and particle scenes from the template asset library
+- [x] **STAGE-05**: Exporter stage copies the base_2d template, writes generated GDScript files, runs Godot headless export, and returns the WASM output path
 - [x] **STAGE-06**: Each stage emits a `ProgressEvent` SSE message at start with a human-readable label
 
 ### Frontend
@@ -116,9 +116,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PIPE-05 | Phase 2 | Complete |
 | STAGE-01 | Phase 3 | Complete |
 | STAGE-02 | Phase 3 | Complete |
-| STAGE-03 | Phase 3 | Pending |
-| STAGE-04 | Phase 3 | Pending |
-| STAGE-05 | Phase 3 | Pending |
+| STAGE-03 | Phase 3 | Complete |
+| STAGE-04 | Phase 3 | Complete |
+| STAGE-05 | Phase 3 | Complete |
 | STAGE-06 | Phase 3 | Complete |
 | ASSET-01 | Phase 3.1 | Pending |
 | ASSET-02 | Phase 3.1 | Pending |
