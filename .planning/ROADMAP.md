@@ -83,6 +83,15 @@ Plans:
 - [ ] 03.1-01-PLAN.md — ImageProvider Protocol, OpenAI + Google providers, provider registry, python-dotenv integration
 - [ ] 03.1-02-PLAN.md — Asset Generator stage, AssetManifest type, MultiStagePipeline integration
 
+### Phase 03.2: Containerization (INSERTED)
+**Goal**: A Docker container that packages the Godot headless binary, export templates, and Python backend into a reproducible build environment — enabling consistent pipeline execution across machines without manual Godot installation
+**Depends on**: Phase 3
+**Requirements**: TBD
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 03.2 to break down)
+
 ### Phase 4: Frontend Integration
 **Goal**: A browser application where a user types a prompt, watches real-time stage progress, and receives a playable game in an iframe — with error states handled
 **Depends on**: Phase 3
@@ -94,7 +103,11 @@ Plans:
   4. The controls legend (key + action pairs) appears in the ChatPanel when the completion SSE event includes a `controls` list
   5. If generation fails (LLM error, export failure, or timeout), a clear error message appears in the ChatPanel and the prompt input remains available for retry
   6. After a game loads, the prompt input resets and a new prompt can be submitted immediately
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 04-01-PLAN.md — Backend patches (done event data, COOP/COEP middleware) + Tailwind v4 setup + types/reducer/layout foundation
+- [ ] 04-02-PLAN.md — useGeneration SSE hook, ChatPanel, GameViewer components, page.tsx two-column wiring
+- [ ] 04-03-PLAN.md — Human verification checkpoint: full visual and functional review in browser
 
 ## Progress
 
@@ -105,6 +118,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 |-------|----------------|--------|-----------|
 | 1. Scaffold and Godot Template | 2/4 | In Progress|  |
 | 2. Backend Pipeline Foundation | 3/3 | Complete   | 2026-03-14 |
-| 3. Multi-Stage Pipeline | 2/3 | In Progress|  |
+| 3. Multi-Stage Pipeline | 3/3 | Complete   | 2026-03-15 |
 | 3.1 Asset Generation Pipeline | 0/2 | Not started | - |
-| 4. Frontend Integration | 0/TBD | Not started | - |
+| 3.2 Containerization? | 0/TBD | Not started | - |
+| 4. Frontend Integration | 0/3 | Not started | - |
