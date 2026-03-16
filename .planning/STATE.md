@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in-progress
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-03-16T07:46:12Z"
-last_activity: 2026-03-16 — Completed 04-01-PLAN.md
+status: executing
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-03-16T07:51:40.394Z"
+last_activity: 2026-03-16 — Completed 04-02-PLAN.md
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 3
-  total_plans: 12
-  completed_plans: 11
-  percent: 92
+  total_plans: 15
+  completed_plans: 12
+  percent: 80
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 4 of 4 (Frontend Integration)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-03-16 — Completed 04-01-PLAN.md
+Last activity: 2026-03-16 — Completed 04-02-PLAN.md
 
-Progress: [█████████░] 92%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [█████████░] 92%
 | Phase 03 P02 | 2min | 2 tasks | 3 files |
 | Phase 03 P03 | 3min | 2 tasks | 5 files |
 | Phase 04 P01 | 4min | 3 tasks | 13 files |
+| Phase 04 P02 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -93,6 +94,8 @@ Recent decisions affecting current work:
 - [Phase 04]: jsdom v25 for CJS compat with vitest 4.x on Node 22 (v27 ESM-only breaks forks pool)
 - [Phase 04]: vitest config uses .mts extension for ESM module resolution
 - [Phase 04]: Tailwind v4 @import syntax with @theme inline for custom oklch color variables
+- [Phase 04]: useGeneration registers both addEventListener error for backend events and onerror for network failures
+- [Phase 04]: GameViewer persists iframe through error state if gameUrl exists from previous generation
 
 ### Roadmap Evolution
 
@@ -110,6 +113,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T07:46:12Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-03-16T07:51:40.391Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
