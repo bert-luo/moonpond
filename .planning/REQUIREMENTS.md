@@ -40,14 +40,14 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Frontend
 
-- [ ] **FE-01**: Frontend renders a two-column layout: ChatPanel on the left, GameViewer on the right
-- [ ] **FE-02**: User can type a prompt and submit it; frontend sends `POST /api/generate` and subscribes to `GET /api/stream/{job_id}`
-- [ ] **FE-03**: ChatPanel displays each incoming SSE stage message as a chat bubble as it arrives
-- [ ] **FE-04**: GameViewer shows a loading skeleton while generation is in progress
-- [ ] **FE-05**: On completion SSE event, GameViewer loads the game iframe automatically; skeleton is replaced by the live game
-- [ ] **FE-06**: ChatPanel renders a controls legend (key + action pairs) when the completion event includes a `controls` list
-- [ ] **FE-07**: User sees an error message in ChatPanel if generation fails (LLM error, export failure, or timeout)
-- [ ] **FE-08**: Prompt input resets after game loads; user can submit a new prompt
+- [x] **FE-01**: Frontend renders a two-column layout: ChatPanel on the left, GameViewer on the right
+- [x] **FE-02**: User can type a prompt and submit it; frontend sends `POST /api/generate` and subscribes to `GET /api/stream/{job_id}`
+- [x] **FE-03**: ChatPanel displays each incoming SSE stage message as a chat bubble as it arrives
+- [x] **FE-04**: GameViewer shows a loading skeleton while generation is in progress
+- [x] **FE-05**: On completion SSE event, GameViewer loads the game iframe automatically; skeleton is replaced by the live game
+- [x] **FE-06**: ChatPanel renders a controls legend (key + action pairs) when the completion event includes a `controls` list
+- [x] **FE-07**: User sees an error message in ChatPanel if generation fails (LLM error, export failure, or timeout)
+- [x] **FE-08**: Prompt input resets after game loads; user can submit a new prompt
 
 ### Asset Generation Pipeline
 
@@ -126,14 +126,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ASSET-04 | Phase 3.1 | Pending |
 | ASSET-05 | Phase 3.1 | Pending |
 | ASSET-06 | Phase 3.1 | Pending |
-| FE-01 | Phase 4 | Pending |
-| FE-02 | Phase 4 | Pending |
-| FE-03 | Phase 4 | Pending |
-| FE-04 | Phase 4 | Pending |
-| FE-05 | Phase 4 | Pending |
-| FE-06 | Phase 4 | Pending |
-| FE-07 | Phase 4 | Pending |
-| FE-08 | Phase 4 | Pending |
+| FE-01 | Phase 4 | Complete |
+| FE-02 | Phase 4 | Complete |
+| FE-03 | Phase 4 | Complete |
+| FE-04 | Phase 4 | Complete |
+| FE-05 | Phase 4 | Complete |
+| FE-06 | Phase 4 | Complete |
+| FE-07 | Phase 4 | Complete |
+| FE-08 | Phase 4 | Complete |
 
 **Coverage:**
 - v1 requirements: 33 total

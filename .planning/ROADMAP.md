@@ -105,7 +105,7 @@ Plans:
   6. After a game loads, the prompt input resets and a new prompt can be submitted immediately
 **Plans**: 3 plans
 Plans:
-- [ ] 04-01-PLAN.md — Backend patches (done event data, COOP/COEP middleware) + Tailwind v4 setup + types/reducer/layout foundation
+- [x] 04-01-PLAN.md — Backend patches (done event data, COOP/COEP middleware) + Tailwind v4 setup + types/reducer/layout foundation
 - [ ] 04-02-PLAN.md — useGeneration SSE hook, ChatPanel, GameViewer components, page.tsx two-column wiring
 - [ ] 04-03-PLAN.md — Human verification checkpoint: full visual and functional review in browser
 
@@ -121,4 +121,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 3. Multi-Stage Pipeline | 3/3 | Complete   | 2026-03-15 |
 | 3.1 Asset Generation Pipeline | 0/2 | Not started | - |
 | 3.2 Containerization? | 0/TBD | Not started | - |
-| 4. Frontend Integration | 0/3 | Not started | - |
+| 4. Frontend Integration | 1/3 | In Progress | - |
