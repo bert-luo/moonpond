@@ -10,6 +10,9 @@ from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
 
 from .models.requests import GenerateRequest
 from .models.responses import GenerateResponse
@@ -29,6 +32,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+class COOPCOEPMiddleware(BaseHTTPMiddleware):
+    """Inject cross-origin isolation headers on /games/* responses.
+
+    Required for Godot WASM SharedArrayBuffer support in iframes.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        if request.url.path.startswith("/games/"):
+            response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+            response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+            response.headers["Access-Control-Allow-Origin"] = "*"
+        return response
+
+
+app.add_middleware(COOPCOEPMiddleware)
+
 # Games output directory (runtime only, gitignored)
 GAMES_DIR = Path(__file__).parent.parent.parent / "games"
 GAMES_DIR.mkdir(exist_ok=True)
@@ -38,7 +59,7 @@ GAMES_DIR.mkdir(exist_ok=True)
 async def generate(
     req: GenerateRequest,
     background_tasks: BackgroundTasks,
-    pipeline: str = "stub",
+    pipeline: str = "multi_stage",
 ) -> GenerateResponse:
     """Create a new game generation job and return job_id immediately."""
     job_id = str(uuid.uuid4())
