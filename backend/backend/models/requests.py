@@ -7,3 +7,4 @@ class GenerateRequest(BaseModel):
     """Body for POST /api/generate."""
 
     prompt: str
+    save_intermediate: bool = True

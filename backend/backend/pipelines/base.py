@@ -32,5 +32,6 @@ class GamePipeline(Protocol):
     """Protocol that all pipeline strategies must satisfy."""
 
     async def generate(
-        self, prompt: str, job_id: str, emit: EmitFn
+        self, prompt: str, job_id: str, emit: EmitFn,
+        *, save_intermediate: bool = True,
     ) -> GameResult: ...
