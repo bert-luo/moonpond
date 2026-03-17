@@ -60,13 +60,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Pipeline Optimization (Contract-First)
 
-- [ ] **OPT-01**: Typed Pydantic models (RichGameSpec, NodeContract, GameContract) define the interface contract between all pipeline stages
+- [x] **OPT-01**: Typed Pydantic models (RichGameSpec, NodeContract, GameContract) define the interface contract between all pipeline stages
 - [ ] **OPT-02**: Spec Expander stage converts raw user prompt into a RichGameSpec with entity-level detail (entities, interactions, scene structure)
 - [ ] **OPT-03**: Contract Generator stage converts RichGameSpec into a typed GameContract defining all method signatures, signals, groups, and dependencies before code generation
 - [ ] **OPT-04**: Parallel Node Generation generates leaf nodes (no dependencies) concurrently via asyncio.gather() and orchestrator nodes sequentially after
 - [ ] **OPT-05**: One failed node generator does not kill other parallel generators (return_exceptions=True)
 - [ ] **OPT-06**: Wiring Generator produces Main.tscn with correct ExtResource references matching contract script_paths; patches project.godot only when custom autoloads are needed
-- [ ] **OPT-07**: ContractPipeline is registered as "contract" in the pipeline registry alongside MultiStagePipeline
+- [x] **OPT-07**: ContractPipeline is registered as "contract" in the pipeline registry alongside MultiStagePipeline
 - [ ] **OPT-08**: Full ContractPipeline.generate() runs all 5 stages (spec expander, contract generator, parallel node gen, wiring gen, export) and returns a GameResult
 
 ## v2 Requirements
@@ -145,13 +145,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FE-06 | Phase 4 | Complete |
 | FE-07 | Phase 4 | Complete |
 | FE-08 | Phase 4 | Complete |
-| OPT-01 | Phase 5 | Pending |
+| OPT-01 | Phase 5 | Complete |
 | OPT-02 | Phase 5 | Pending |
 | OPT-03 | Phase 5 | Pending |
 | OPT-04 | Phase 5 | Pending |
 | OPT-05 | Phase 5 | Pending |
 | OPT-06 | Phase 5 | Pending |
-| OPT-07 | Phase 5 | Pending |
+| OPT-07 | Phase 5 | Complete |
 | OPT-08 | Phase 5 | Pending |
 
 **Coverage:**

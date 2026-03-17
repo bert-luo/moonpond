@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-03-16T07:51:40.394Z"
-last_activity: 2026-03-16 — Completed 04-02-PLAN.md
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-03-17T05:33:39Z"
+last_activity: 2026-03-16 — Completed 05-01-PLAN.md
 progress:
   total_phases: 6
   completed_phases: 3
   total_plans: 15
-  completed_plans: 12
-  percent: 80
+  completed_plans: 13
+  percent: 81
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** Generated games must look and feel intentional — shaders, palettes, and particles applied by design, not bare functional code that happens to run
-**Current focus:** Phase 4 — Frontend Integration
+**Current focus:** Phase 5 — Pipeline Optimization
 
 ## Current Position
 
-Phase: 4 of 4 (Frontend Integration)
-Plan: 2 of 3 in current phase
+Phase: 5 of 5 (Pipeline Optimization)
+Plan: 1 of 5 in current phase
 Status: In Progress
-Last activity: 2026-03-16 — Completed 04-02-PLAN.md
+Last activity: 2026-03-16 — Completed 05-01-PLAN.md
 
-Progress: [████████░░] 80%
+Progress: [████████░░] 81%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [████████░░] 80%
 | Phase 03 P03 | 3min | 2 tasks | 5 files |
 | Phase 04 P01 | 4min | 3 tasks | 13 files |
 | Phase 04 P02 | 2min | 2 tasks | 4 files |
+| Phase 05 P01 | 5min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -96,6 +97,8 @@ Recent decisions affecting current work:
 - [Phase 04]: Tailwind v4 @import syntax with @theme inline for custom oklch color variables
 - [Phase 04]: useGeneration registers both addEventListener error for backend events and onerror for network failures
 - [Phase 04]: GameViewer persists iframe through error state if gameUrl exists from previous generation
+- [Phase 05]: ContractPipeline follows GamePipeline Protocol signature (with job_id) unlike MultiStagePipeline
+- [Phase 05]: NodeContract.dependencies list enables topological wave scheduling for parallel generation
 
 ### Roadmap Evolution
 
@@ -114,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-16T07:51:40.391Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-03-17T05:33:39Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
