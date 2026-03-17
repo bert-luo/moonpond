@@ -10,6 +10,7 @@ import pytest
 from backend.pipelines.base import ProgressEvent
 from backend.stages.contract_models import GameContract, NodeContract
 from backend.stages.node_generator import (
+    _build_node_system_prompt,
     _generate_single_node,
     run_parallel_node_generation,
 )
@@ -328,3 +329,61 @@ async def test_failed_node_emits_warning(emit):
     # Should have a warning event about the failure
     warning_events = [e for e in emitted if "fail" in e.message.lower() or "warning" in e.type.lower()]
     assert len(warning_events) >= 1
+
+
+# ---------------------------------------------------------------------------
+# GameManager API block tests (Task 1 — CTXE-02)
+# ---------------------------------------------------------------------------
+
+
+def test_prompt_includes_game_manager_api_block():
+    """Contract with game_manager_* fields -> prompt contains GameManager API section."""
+    node = NodeContract(
+        script_path="player.gd",
+        node_type="CharacterBody2D",
+        description="Player character",
+    )
+    contract = _make_contract(
+        [node],
+        game_manager_properties=["score", "lives"],
+        game_manager_methods=["add_score(amount: int)"],
+        game_manager_signals=["score_changed"],
+        game_manager_enums={"PowerUpType": ["SPEED", "SHIELD"]},
+    )
+    prompt = _build_node_system_prompt(node, contract)
+
+    assert "GameManager API" in prompt
+    assert "score" in prompt
+    assert "lives" in prompt
+    assert "add_score" in prompt
+    assert "score_changed" in prompt
+    assert "PowerUpType" in prompt
+    assert "SPEED" in prompt
+
+
+def test_prompt_includes_base_api_even_when_empty():
+    """Contract with no game_manager_* fields -> prompt still contains base API."""
+    node = NodeContract(
+        script_path="player.gd",
+        node_type="CharacterBody2D",
+        description="Player character",
+    )
+    contract = _make_contract([node])
+    prompt = _build_node_system_prompt(node, contract)
+
+    assert "set_palette" in prompt
+    assert "get_palette_color" in prompt
+    assert "GameState" in prompt
+
+
+def test_prompt_no_longer_says_preexisting_autoload():
+    """Prompt should NOT contain 'pre-existing autoload'."""
+    node = NodeContract(
+        script_path="player.gd",
+        node_type="CharacterBody2D",
+        description="Player character",
+    )
+    contract = _make_contract([node])
+    prompt = _build_node_system_prompt(node, contract)
+
+    assert "pre-existing autoload" not in prompt
