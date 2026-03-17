@@ -387,3 +387,94 @@ def test_prompt_no_longer_says_preexisting_autoload():
     prompt = _build_node_system_prompt(node, contract)
 
     assert "pre-existing autoload" not in prompt
+
+
+# ---------------------------------------------------------------------------
+# Dependency API block tests (Task 2 — CTXE-03)
+# ---------------------------------------------------------------------------
+
+
+def test_prompt_includes_dependency_api_for_declared_deps():
+    """Node with dependencies -> prompt contains dependency API blocks."""
+    player = NodeContract(
+        script_path="player.gd",
+        node_type="CharacterBody2D",
+        description="Player character",
+        methods=["shoot()", "take_damage(amount: int)"],
+        signals=["died"],
+        groups=["players"],
+    )
+    hud = NodeContract(
+        script_path="hud.gd",
+        node_type="Control",
+        description="HUD overlay",
+        dependencies=["player.gd"],
+    )
+    contract = _make_contract([player, hud])
+    prompt = _build_node_system_prompt(hud, contract)
+
+    assert "Sibling Node APIs" in prompt
+    assert "Dependency: player.gd" in prompt
+    assert "shoot()" in prompt
+    assert "take_damage" in prompt
+    assert "died" in prompt
+
+
+def test_prompt_no_dependency_block_for_leaf_node():
+    """Node with no dependencies -> no Sibling Node APIs block."""
+    leaf = NodeContract(
+        script_path="particle.gd",
+        node_type="GPUParticles2D",
+        description="Particle effect",
+    )
+    contract = _make_contract([leaf])
+    prompt = _build_node_system_prompt(leaf, contract)
+
+    assert "Sibling Node APIs" not in prompt
+
+
+def test_prompt_skips_unknown_dependency():
+    """Node depends on script not in contract -> no crash, no block for it."""
+    node = NodeContract(
+        script_path="spawner.gd",
+        node_type="Node2D",
+        description="Spawner",
+        dependencies=["ghost.gd"],
+    )
+    contract = _make_contract([node])
+    prompt = _build_node_system_prompt(node, contract)
+
+    # ghost.gd is not in the contract, so no dependency block should appear
+    assert "ghost.gd" not in prompt.split("Full game contract")[0]
+    assert "Sibling Node APIs" not in prompt
+
+
+def test_prompt_multiple_dependencies():
+    """Node depends on two siblings -> both appear in prompt."""
+    player = NodeContract(
+        script_path="player.gd",
+        node_type="CharacterBody2D",
+        description="Player",
+        methods=["get_position()"],
+        signals=["moved"],
+    )
+    enemy = NodeContract(
+        script_path="enemy.gd",
+        node_type="Area2D",
+        description="Enemy",
+        methods=["patrol()"],
+        signals=["spotted_player"],
+    )
+    manager = NodeContract(
+        script_path="level.gd",
+        node_type="Node2D",
+        description="Level manager",
+        dependencies=["player.gd", "enemy.gd"],
+    )
+    contract = _make_contract([player, enemy, manager])
+    prompt = _build_node_system_prompt(manager, contract)
+
+    assert "Dependency: player.gd" in prompt
+    assert "Dependency: enemy.gd" in prompt
+    assert "get_position()" in prompt
+    assert "patrol()" in prompt
