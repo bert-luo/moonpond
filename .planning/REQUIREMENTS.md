@@ -58,6 +58,17 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **ASSET-05**: The active image provider is configurable via environment variable (`IMAGE_PROVIDER=openai|google`) without code changes
 - [ ] **ASSET-06**: API keys are loaded from `.env` file at repo root via `python-dotenv`
 
+### Pipeline Optimization (Contract-First)
+
+- [ ] **OPT-01**: Typed Pydantic models (RichGameSpec, NodeContract, GameContract) define the interface contract between all pipeline stages
+- [ ] **OPT-02**: Spec Expander stage converts raw user prompt into a RichGameSpec with entity-level detail (entities, interactions, scene structure)
+- [ ] **OPT-03**: Contract Generator stage converts RichGameSpec into a typed GameContract defining all method signatures, signals, groups, and dependencies before code generation
+- [ ] **OPT-04**: Parallel Node Generation generates leaf nodes (no dependencies) concurrently via asyncio.gather() and orchestrator nodes sequentially after
+- [ ] **OPT-05**: One failed node generator does not kill other parallel generators (return_exceptions=True)
+- [ ] **OPT-06**: Wiring Generator produces Main.tscn with correct ExtResource references matching contract script_paths; patches project.godot only when custom autoloads are needed
+- [ ] **OPT-07**: ContractPipeline is registered as "contract" in the pipeline registry alongside MultiStagePipeline
+- [ ] **OPT-08**: Full ContractPipeline.generate() runs all 5 stages (spec expander, contract generator, parallel node gen, wiring gen, export) and returns a GameResult
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -134,12 +145,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FE-06 | Phase 4 | Complete |
 | FE-07 | Phase 4 | Complete |
 | FE-08 | Phase 4 | Complete |
+| OPT-01 | Phase 5 | Pending |
+| OPT-02 | Phase 5 | Pending |
+| OPT-03 | Phase 5 | Pending |
+| OPT-04 | Phase 5 | Pending |
+| OPT-05 | Phase 5 | Pending |
+| OPT-06 | Phase 5 | Pending |
+| OPT-07 | Phase 5 | Pending |
+| OPT-08 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 33 total
-- Mapped to phases: 33
-- Unmapped: 0 ✓
+- v1 requirements: 41 total
+- Mapped to phases: 41
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-13*
-*Last updated: 2026-03-14 after Phase 3.1 insertion*
+*Last updated: 2026-03-17 after Phase 5 pipeline optimization planning*

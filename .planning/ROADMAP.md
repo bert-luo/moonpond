@@ -16,7 +16,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Backend Pipeline Foundation** - FastAPI app, SSE streaming endpoints, pipeline registry, Godot headless runner (completed 2026-03-14)
 - [ ] **Phase 3: Multi-Stage Pipeline** - All five pipeline stages, self-correction pass, end-to-end CLI proof
 - [ ] **Phase 4: Frontend Integration** - Two-column Next.js UI wired to working pipeline, full user flow end-to-end
-- [ ] **Phase 5: E2E Optimization** - Await further instructions based on results of previous phases
+- [ ] **Phase 5: Pipeline Optimization** - Contract-first parallel pipeline with dependency-aware generation and centralized wiring
 
 ## Phase Details
 
@@ -109,10 +109,29 @@ Plans:
 - [ ] 04-02-PLAN.md — useGeneration SSE hook, ChatPanel, GameViewer components, page.tsx two-column wiring
 - [ ] 04-03-PLAN.md — Human verification checkpoint: full visual and functional review in browser
 
+### Phase 5: Pipeline Optimization
+**Goal**: A contract-first parallel pipeline (ContractPipeline) that defines interface contracts before code generation, generates independent files in parallel, and centralizes scene wiring — eliminating cross-file bugs while improving generation speed
+**Depends on**: Phase 4
+**Requirements**: OPT-01, OPT-02, OPT-03, OPT-04, OPT-05, OPT-06, OPT-07, OPT-08
+**Success Criteria** (what must be TRUE):
+  1. GameContract Pydantic model validates a structured contract with nodes, method signatures, signals, groups, and dependencies
+  2. Spec Expander stage converts a raw prompt into a RichGameSpec with entity-level detail
+  3. Contract Generator stage produces a typed GameContract that all downstream stages consume
+  4. Parallel Node Generation runs all leaf nodes concurrently via asyncio.gather(); one failure does not kill others
+  5. Wiring Generator produces Main.tscn with correct ExtResource references matching contract; patches project.godot only when needed
+  6. ContractPipeline is selectable via `get_pipeline("contract")` from the registry
+  7. Full pipeline with mocked LLM produces a GameResult and emits progress events for each stage
+**Plans**: 4 plans
+Plans:
+- [ ] 05-01-PLAN.md — Data models (RichGameSpec, NodeContract, GameContract) + ContractPipeline skeleton + test scaffolds
+- [ ] 05-02-PLAN.md — Spec Expander + Contract Generator stages with mocked LLM tests
+- [ ] 05-03-PLAN.md — Parallel Node Generator + Wiring Generator stages with mocked LLM tests
+- [ ] 05-04-PLAN.md — ContractPipeline full wiring + registry integration + end-to-end test
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -122,13 +141,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 3.1 Asset Generation Pipeline | 0/2 | Not started | - |
 | 3.2 Containerization? | 0/TBD | Not started | - |
 | 4. Frontend Integration | 2/3 | In Progress|  |
-
-### Phase 5: pipeline optimization
-
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 4
-**Plans:** 0 plans
-
-Plans:
-- [ ] TBD (run /gsd:plan-phase 5 to break down)
+| 5. Pipeline Optimization | 0/4 | Not started | - |
