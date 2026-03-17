@@ -122,3 +122,13 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 3.1 Asset Generation Pipeline | 0/2 | Not started | - |
 | 3.2 Containerization? | 0/TBD | Not started | - |
 | 4. Frontend Integration | 2/3 | In Progress|  |
+
+### Phase 5: pipeline optimization
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 4
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 5 to break down)

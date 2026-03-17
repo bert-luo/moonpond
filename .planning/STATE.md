@@ -101,6 +101,7 @@ Recent decisions affecting current work:
 
 - Phase 03.1 inserted after Phase 3: Asset Generation Pipeline (URGENT) — configurable image gen (OpenAI/Google) for sprites, backgrounds, textures; ImageProvider protocol for swappable providers
 - Phase 03.2 inserted after Phase 3: Containerization (URGENT) — Docker container packaging Godot headless binary, export templates, and Python backend for reproducible builds across machines
+- Phase 5 added: pipeline optimization
 
 ### Pending Todos
 
