@@ -142,6 +142,30 @@ def test_game_contract_model_validate_realistic_json():
     assert contract.nodes[1].dependencies == ["player.gd"]
 
 
+def test_game_contract_new_fields_default_to_empty():
+    """game_manager_methods and game_manager_signals should default to empty lists."""
+    contract = GameContract(
+        title="Minimal",
+        nodes=[],
+        control_scheme="wasd",
+    )
+    assert contract.game_manager_methods == []
+    assert contract.game_manager_signals == []
+
+
+def test_game_contract_new_fields_accept_data():
+    """game_manager_methods and game_manager_signals should accept list[str] data."""
+    contract = GameContract(
+        title="Full",
+        nodes=[],
+        control_scheme="wasd",
+        game_manager_methods=["add_score(points: int)", "reset()"],
+        game_manager_signals=["score_changed", "game_reset"],
+    )
+    assert contract.game_manager_methods == ["add_score(points: int)", "reset()"]
+    assert contract.game_manager_signals == ["score_changed", "game_reset"]
+
+
 def test_game_contract_missing_title_raises_validation_error():
     with pytest.raises(ValidationError):
         GameContract(
