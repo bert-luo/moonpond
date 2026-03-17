@@ -152,7 +152,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
   1. ContractPipeline generates a game-specific game_manager.gd with properties, methods, signals, and enums derived from GameContract — replacing the static template copy
   2. Node generation system prompts include an explicit GameManager API block listing all available properties, methods, signals, and enums from the contract
   3. Node generation system prompts include a focused dependency API block for each declared dependency, showing that node's methods, signals, and groups
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 05.1-01-PLAN.md — GameContract model extensions + game_manager.gd generator + pipeline wiring
