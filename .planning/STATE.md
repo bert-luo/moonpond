@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-03-17T05:40:39.644Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-03-17T05:41:03.750Z"
 last_activity: 2026-03-16 — Completed 05-01-PLAN.md
 progress:
   total_phases: 7
   completed_phases: 3
   total_plans: 19
-  completed_plans: 14
+  completed_plans: 15
   percent: 81
 ---
 
@@ -64,6 +64,7 @@ Progress: [████████░░] 81%
 | Phase 04 P02 | 2min | 2 tasks | 4 files |
 | Phase 05 P01 | 5min | 2 tasks | 5 files |
 | Phase 05 P03 | 4min | 2 tasks | 4 files |
+| Phase 05 P02 | 4min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -103,6 +104,8 @@ Recent decisions affecting current work:
 - [Phase 05]: Topological depth map with cycle detection for wave scheduling
 - [Phase 05]: System prompt scoped per-node with ONLY constraint to prevent cross-node bleed
 - [Phase 05]: project.godot patched via regex replacement of [autoload] section preserving [input]
+- [Phase 05]: Spec Expander uses max_tokens=4096, Contract Generator uses 8192 for detailed node contracts
+- [Phase 05]: Contract Generator system prompt explicitly excludes game_manager.gd from node list
 
 ### Roadmap Evolution
 
@@ -121,6 +124,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T05:40:39.642Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-03-17T05:41:03.748Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None

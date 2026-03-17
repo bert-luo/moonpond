@@ -61,8 +61,8 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Pipeline Optimization (Contract-First)
 
 - [x] **OPT-01**: Typed Pydantic models (RichGameSpec, NodeContract, GameContract) define the interface contract between all pipeline stages
-- [ ] **OPT-02**: Spec Expander stage converts raw user prompt into a RichGameSpec with entity-level detail (entities, interactions, scene structure)
-- [ ] **OPT-03**: Contract Generator stage converts RichGameSpec into a typed GameContract defining all method signatures, signals, groups, and dependencies before code generation
+- [x] **OPT-02**: Spec Expander stage converts raw user prompt into a RichGameSpec with entity-level detail (entities, interactions, scene structure)
+- [x] **OPT-03**: Contract Generator stage converts RichGameSpec into a typed GameContract defining all method signatures, signals, groups, and dependencies before code generation
 - [x] **OPT-04**: Parallel Node Generation generates leaf nodes (no dependencies) concurrently via asyncio.gather() and orchestrator nodes sequentially after
 - [x] **OPT-05**: One failed node generator does not kill other parallel generators (return_exceptions=True)
 - [x] **OPT-06**: Wiring Generator produces Main.tscn with correct ExtResource references matching contract script_paths; patches project.godot only when custom autoloads are needed
@@ -146,8 +146,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FE-07 | Phase 4 | Complete |
 | FE-08 | Phase 4 | Complete |
 | OPT-01 | Phase 5 | Complete |
-| OPT-02 | Phase 5 | Pending |
-| OPT-03 | Phase 5 | Pending |
+| OPT-02 | Phase 5 | Complete |
+| OPT-03 | Phase 5 | Complete |
 | OPT-04 | Phase 5 | Complete |
 | OPT-05 | Phase 5 | Complete |
 | OPT-06 | Phase 5 | Complete |
