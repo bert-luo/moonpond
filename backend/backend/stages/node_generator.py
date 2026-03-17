@@ -109,6 +109,38 @@ def _build_game_manager_api_block(contract: GameContract) -> str:
     return "\n".join(lines)
 
 
+def _build_dependency_api_blocks(node: NodeContract, contract: GameContract) -> str:
+    """Build API reference blocks for each of this node's declared dependencies.
+
+    Looks up each dependency by script_path in the contract's node list and
+    formats its public API (methods, signals, groups). Unknown dependencies
+    are silently skipped.
+    """
+    if not node.dependencies:
+        return ""
+
+    by_path: dict[str, NodeContract] = {n.script_path: n for n in contract.nodes}
+    blocks: list[str] = []
+
+    for dep_path in node.dependencies:
+        dep = by_path.get(dep_path)
+        if dep is None:
+            continue
+        lines = [
+            f"  Dependency: {dep.script_path} ({dep.node_type})",
+            f"    Description: {dep.description}",
+            f"    Methods: {', '.join(dep.methods) if dep.methods else 'none'}",
+            f"    Signals: {', '.join(dep.signals) if dep.signals else 'none'}",
+            f"    Groups: {', '.join(dep.groups) if dep.groups else 'none'}",
+        ]
+        blocks.append("\n".join(lines))
+
+    if not blocks:
+        return ""
+
+    return "Sibling Node APIs (your declared dependencies):\n" + "\n\n".join(blocks)
+
+
 def _build_node_system_prompt(node: NodeContract, contract: GameContract) -> str:
     """Build the system prompt for generating a single node's files."""
     parts = [
@@ -135,6 +167,11 @@ def _build_node_system_prompt(node: NodeContract, contract: GameContract) -> str
     parts.append(f"\nAvailable shaders: {json.dumps(SHADER_PATHS)}")
     parts.append(f"Available palettes: {json.dumps(PALETTE_PATHS)}")
     parts.append(f"Available particles: {json.dumps(PARTICLE_PATHS)}")
+
+    # Dependency API blocks
+    dep_block = _build_dependency_api_blocks(node, contract)
+    if dep_block:
+        parts.append(f"\n{dep_block}")
 
     # Contract context
     parts.append(
