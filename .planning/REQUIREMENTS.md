@@ -67,7 +67,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **OPT-05**: One failed node generator does not kill other parallel generators (return_exceptions=True)
 - [x] **OPT-06**: Wiring Generator produces Main.tscn with correct ExtResource references matching contract script_paths; patches project.godot only when custom autoloads are needed
 - [x] **OPT-07**: ContractPipeline is registered as "contract" in the pipeline registry alongside MultiStagePipeline
-- [ ] **OPT-08**: Full ContractPipeline.generate() runs all 5 stages (spec expander, contract generator, parallel node gen, wiring gen, export) and returns a GameResult
+- [x] **OPT-08**: Full ContractPipeline.generate() runs all 5 stages (spec expander, contract generator, parallel node gen, wiring gen, export) and returns a GameResult
 
 ## v2 Requirements
 
@@ -152,7 +152,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OPT-05 | Phase 5 | Complete |
 | OPT-06 | Phase 5 | Complete |
 | OPT-07 | Phase 5 | Complete |
-| OPT-08 | Phase 5 | Pending |
+| OPT-08 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 41 total
