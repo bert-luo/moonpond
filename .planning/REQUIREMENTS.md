@@ -71,7 +71,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Contract Pipeline Context Enrichment
 
-- [ ] **CTXE-01**: ContractPipeline generates a game-specific game_manager.gd from the GameContract's game_manager_enums, game_manager_properties, and methods referenced by nodes — replacing the static template copy
+- [x] **CTXE-01**: ContractPipeline generates a game-specific game_manager.gd from the GameContract's game_manager_enums, game_manager_properties, and methods referenced by nodes — replacing the static template copy
 - [ ] **CTXE-02**: Node generation system prompts include an explicit GameManager API block listing all available properties, methods, signals, and enums derived from the GameContract
 - [ ] **CTXE-03**: Node generation system prompts include a focused dependency API block for each declared dependency, showing that node's methods, signals, and groups from the contract
 
@@ -160,7 +160,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OPT-07 | Phase 5 | Complete |
 | OPT-08 | Phase 5 | Complete |
 
-| CTXE-01 | Phase 5.1 | Pending |
+| CTXE-01 | Phase 5.1 | Complete |
 | CTXE-02 | Phase 5.1 | Pending |
 | CTXE-03 | Phase 5.1 | Pending |
 
