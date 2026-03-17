@@ -6,6 +6,11 @@ import asyncio
 import uuid
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+# Load .env from repo root (one level above backend/)
+load_dotenv(Path(__file__).parent.parent.parent / ".env")
+
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.sse import EventSourceResponse, ServerSentEvent
@@ -27,7 +32,12 @@ app = FastAPI(title="Moonpond")
 # CORS for frontend dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3001",
+    ],
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
@@ -44,6 +54,7 @@ class COOPCOEPMiddleware(BaseHTTPMiddleware):
         if request.url.path.startswith("/games/"):
             response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
             response.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+            response.headers["Cross-Origin-Resource-Policy"] = "cross-origin"
             response.headers["Access-Control-Allow-Origin"] = "*"
         return response
 
@@ -79,7 +90,13 @@ async def generate(
     async def emit(event):
         await queue.put(event)
 
-    background_tasks.add_task(pipeline_cls().generate, req.prompt, job_id, emit)
+    background_tasks.add_task(
+        pipeline_cls().generate,
+        req.prompt,
+        job_id,
+        emit,
+        save_intermediate=req.save_intermediate,
+    )
     return GenerateResponse(job_id=job_id)
 
 
@@ -87,11 +104,14 @@ async def generate(
 async def stream(job_id: str):
     """Stream SSE ProgressEvent messages for a running job."""
     if job_id not in active_jobs:
-        yield ServerSentEvent(data={"error": "job not found"}, event="error")
+        from .pipelines.base import ProgressEvent
+
+        not_found = ProgressEvent(type="error", message="Job not found")
+        yield ServerSentEvent(data=not_found.model_dump_json(), event="error")
         return
 
     queue = active_jobs[job_id]
-    deadline = asyncio.get_event_loop().time() + 120
+    deadline = asyncio.get_event_loop().time() + 300
     while True:
         remaining = deadline - asyncio.get_event_loop().time()
         if remaining <= 0:
@@ -110,7 +130,12 @@ async def stream(job_id: str):
         yield ServerSentEvent(data=event.model_dump_json(), event=event.type)
 
     # Total timeout reached
-    yield ServerSentEvent(data={"error": "stream timeout"}, event="error")
+    from .pipelines.base import ProgressEvent
+
+    timeout_event = ProgressEvent(
+        type="error", message="Generation timed out — please try again"
+    )
+    yield ServerSentEvent(data=timeout_event.model_dump_json(), event="error")
     if job_id in active_jobs:
         del active_jobs[job_id]
 
