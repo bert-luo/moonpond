@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-01-PLAN.md
-last_updated: "2026-03-17T07:48:42.304Z"
+stopped_at: Completed 05.1-02-PLAN.md
+last_updated: "2026-03-17T07:52:53.851Z"
 last_activity: 2026-03-16 — Completed 05-01-PLAN.md
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 21
-  completed_plans: 17
+  completed_plans: 18
   percent: 81
 ---
 
@@ -67,6 +67,7 @@ Progress: [████████░░] 81%
 | Phase 05 P02 | 4min | 2 tasks | 4 files |
 | Phase 05 P04 | 4min | 2 tasks | 4 files |
 | Phase 05.1 P01 | 3min | 2 tasks | 6 files |
+| Phase 05.1 P02 | 3min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,8 @@ Recent decisions affecting current work:
 - [Phase 05]: fake_copytree test pattern creates destination dir for exporter file write isolation
 - [Phase 05.1]: Hardcoded template base as string constant in generator (no filesystem read)
 - [Phase 05.1]: GameState enum skipped during contract enum generation to prevent duplication
+- [Phase 05.1]: Base palette/state API always included in GameManager API block even when contract fields empty
+- [Phase 05.1]: Dependency API blocks placed before contract JSON for LLM attention priority
 
 ### Roadmap Evolution
 
@@ -131,6 +134,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T07:48:42.301Z
-Stopped at: Completed 05.1-01-PLAN.md
+Last session: 2026-03-17T07:52:53.848Z
+Stopped at: Completed 05.1-02-PLAN.md
 Resume file: None
