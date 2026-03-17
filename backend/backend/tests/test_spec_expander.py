@@ -51,7 +51,7 @@ def _make_mock_client(response_json: dict) -> AsyncMock:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_spec_expander_emits_stage_start():
     """run_spec_expander emits a ProgressEvent with type='stage_start' containing 'Expanding'."""
     client = _make_mock_client(SAMPLE_SPEC_JSON)
@@ -66,7 +66,7 @@ async def test_spec_expander_emits_stage_start():
     assert "Expanding" in event.message or "expanding" in event.message.lower()
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_spec_expander_returns_rich_game_spec_with_entities():
     """run_spec_expander returns a RichGameSpec with populated entities list."""
     client = _make_mock_client(SAMPLE_SPEC_JSON)
@@ -79,7 +79,7 @@ async def test_spec_expander_returns_rich_game_spec_with_entities():
     assert result.title == "Robot Runner"
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_spec_expander_passes_prompt_to_llm():
     """run_spec_expander passes user prompt to LLM with system prompt."""
     client = _make_mock_client(SAMPLE_SPEC_JSON)
@@ -98,7 +98,7 @@ async def test_spec_expander_passes_prompt_to_llm():
     assert system is not None and len(system) > 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_spec_expander_parses_llm_json_response():
     """run_spec_expander handles LLM JSON response parsing into RichGameSpec."""
     client = _make_mock_client(SAMPLE_SPEC_JSON)
