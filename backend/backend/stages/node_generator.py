@@ -72,13 +72,52 @@ def _group_into_waves(
     return [w for w in waves if w]  # filter empty
 
 
+def _build_game_manager_api_block(contract: GameContract) -> str:
+    """Build a structured GameManager API text block from contract fields.
+
+    Always includes the base palette/state API. Appends game-specific
+    properties, methods, signals, and enums when present in the contract.
+    """
+    lines = [
+        "GameManager API (autoload — available globally via GameManager.xxx):",
+        "  Base API (always available):",
+        "    Properties: active_palette (Gradient), state (GameState)",
+        "    Methods: set_palette(palette_name: String), get_palette_color(t: float) -> Color, set_state(new_state: GameState)",
+        "    Enums: GameState { PLAYING, WON, LOST }",
+    ]
+
+    # Build game-specific subsections
+    game_lines: list[str] = []
+    if contract.game_manager_properties:
+        game_lines.append(f"    Properties: {', '.join(contract.game_manager_properties)}")
+    if contract.game_manager_methods:
+        game_lines.append(f"    Methods: {', '.join(contract.game_manager_methods)}")
+    if contract.game_manager_signals:
+        game_lines.append(f"    Signals: {', '.join(contract.game_manager_signals)}")
+    if contract.game_manager_enums:
+        enum_strs = [
+            f"{name} {{ {', '.join(values)} }}"
+            for name, values in contract.game_manager_enums.items()
+        ]
+        game_lines.append(f"    Enums: {', '.join(enum_strs)}")
+
+    if game_lines:
+        lines.append("")
+        lines.append("  Game-Specific API:")
+        lines.extend(game_lines)
+
+    return "\n".join(lines)
+
+
 def _build_node_system_prompt(node: NodeContract, contract: GameContract) -> str:
     """Build the system prompt for generating a single node's files."""
     parts = [
         "You are generating GDScript for a Godot 4 game. "
         "Generate ONLY the file(s) for this node.",
         "",
-        f"Do NOT generate game_manager.gd — GameManager is a pre-existing autoload.",
+        "Do NOT generate game_manager.gd — it is auto-generated separately.",
+        "",
+        _build_game_manager_api_block(contract),
         "",
         f"Respond with ONLY files for: {node.script_path}",
     ]
@@ -98,6 +137,10 @@ def _build_node_system_prompt(node: NodeContract, contract: GameContract) -> str
     parts.append(f"Available particles: {json.dumps(PARTICLE_PATHS)}")
 
     # Contract context
+    parts.append(
+        "\nThe GameManager API block above is the authoritative reference for "
+        "GameManager — use those exact method names and signatures."
+    )
     parts.append(f"\nFull game contract:\n{contract.model_dump_json(indent=2)}")
 
     # Method/signal/group constraints
