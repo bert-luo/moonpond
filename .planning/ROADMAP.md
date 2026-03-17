@@ -142,3 +142,17 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 3.2 Containerization? | 0/TBD | Not started | - |
 | 4. Frontend Integration | 2/3 | In Progress|  |
 | 5. Pipeline Optimization | 1/4 | In Progress|  |
+
+### Phase 05.1: Contract Pipeline Context Enrichment (INSERTED)
+
+**Goal:** Enrich the contract pipeline's node generation with three context improvements: (1) generate a game-specific game_manager.gd from the contract's enums/properties instead of using the static template, (2) inject the GameManager API surface into every node generation prompt so nodes code against a known interface, (3) inject focused sibling node API blocks for each node's declared dependencies
+**Requirements**: CTXE-01, CTXE-02, CTXE-03
+**Depends on:** Phase 5
+**Success Criteria** (what must be TRUE):
+  1. ContractPipeline generates a game-specific game_manager.gd with properties, methods, signals, and enums derived from GameContract — replacing the static template copy
+  2. Node generation system prompts include an explicit GameManager API block listing all available properties, methods, signals, and enums from the contract
+  3. Node generation system prompts include a focused dependency API block for each declared dependency, showing that node's methods, signals, and groups
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 05.1 to break down)

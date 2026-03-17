@@ -60,12 +60,18 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
 
       // Named event: done
       es.addEventListener('done', (e: Event) => {
+        // Close BEFORE dispatching so onerror sees esRef.current !== es and skips
+        es.close();
+        esRef.current = null;
+
         const me = e as MessageEvent;
         try {
           const event = JSON.parse(me.data);
           const data = event.data ?? event;
-          const gameJobId = data.job_id ?? jobId;
-          const gameUrl = `${BACKEND}/games/${gameJobId}/export/index.html`;
+          // Use wasm_path from the backend (contains the actual game directory name)
+          const gameUrl = data.wasm_path
+            ? `${BACKEND}${data.wasm_path}`
+            : `${BACKEND}/games/${data.job_id ?? jobId}/export/index.html`;
           const controls: ControlMapping[] = Array.isArray(data.controls)
             ? data.controls
             : [];
@@ -75,8 +81,6 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
           const gameUrl = `${BACKEND}/games/${jobId}/export/index.html`;
           dispatch({ type: 'SSE_DONE', gameUrl, controls: [] });
         }
-        es.close();
-        esRef.current = null;
       });
 
       // Named event: error (backend-emitted error event)

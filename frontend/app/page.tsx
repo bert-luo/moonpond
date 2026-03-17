@@ -19,7 +19,7 @@ export default function Home() {
       </div>
       {/* GameViewer: fills remaining space — the hero */}
       <div className="flex-1 flex items-center justify-center p-6 bg-black/20">
-        <GameViewer status={state.status} gameUrl={state.gameUrl} />
+        <GameViewer status={state.status} gameUrl={state.gameUrl} stageMessage={state.messages.filter(m => m.type === 'stage').at(-1)?.text ?? null} />
       </div>
     </main>
   );

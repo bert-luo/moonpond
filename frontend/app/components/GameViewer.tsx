@@ -5,17 +5,17 @@ import type { Status } from '@/types/generation';
 interface GameViewerProps {
   status: Status;
   gameUrl: string | null;
+  stageMessage: string | null;
 }
 
-export function GameViewer({ status, gameUrl }: GameViewerProps) {
+export function GameViewer({ status, gameUrl, stageMessage }: GameViewerProps) {
   // Show game iframe if we have a URL (persist through error state)
   if (gameUrl) {
     return (
-      <div className="w-full h-full rounded-xl overflow-hidden shadow-2xl">
+      <div className="w-full h-full rounded-xl overflow-hidden shadow-2xl relative bg-black">
         <iframe
           src={gameUrl}
-          className="w-full h-full border-0"
-          sandbox="allow-scripts allow-same-origin"
+          className="absolute inset-0 w-full h-full border-0"
           allow="cross-origin-isolated"
           title="Generated game"
         />
@@ -28,10 +28,15 @@ export function GameViewer({ status, gameUrl }: GameViewerProps) {
     return (
       <div className="w-full h-full rounded-xl overflow-hidden relative">
         <div className="absolute inset-0 animate-shimmer rounded-xl" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-[var(--color-text-muted)] text-lg font-medium">
-            Building your game...
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <p className="text-[var(--color-text)] text-lg font-medium">
+            {stageMessage ?? 'Building your game...'}
           </p>
+          <div className="flex gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-bounce [animation-delay:0ms]" />
+            <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-bounce [animation-delay:150ms]" />
+            <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-bounce [animation-delay:300ms]" />
+          </div>
         </div>
       </div>
     );

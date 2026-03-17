@@ -69,6 +69,12 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **OPT-07**: ContractPipeline is registered as "contract" in the pipeline registry alongside MultiStagePipeline
 - [x] **OPT-08**: Full ContractPipeline.generate() runs all 5 stages (spec expander, contract generator, parallel node gen, wiring gen, export) and returns a GameResult
 
+### Contract Pipeline Context Enrichment
+
+- [ ] **CTXE-01**: ContractPipeline generates a game-specific game_manager.gd from the GameContract's game_manager_enums, game_manager_properties, and methods referenced by nodes — replacing the static template copy
+- [ ] **CTXE-02**: Node generation system prompts include an explicit GameManager API block listing all available properties, methods, signals, and enums derived from the GameContract
+- [ ] **CTXE-03**: Node generation system prompts include a focused dependency API block for each declared dependency, showing that node's methods, signals, and groups from the contract
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -154,9 +160,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OPT-07 | Phase 5 | Complete |
 | OPT-08 | Phase 5 | Complete |
 
+| CTXE-01 | Phase 5.1 | Pending |
+| CTXE-02 | Phase 5.1 | Pending |
+| CTXE-03 | Phase 5.1 | Pending |
+
 **Coverage:**
-- v1 requirements: 41 total
-- Mapped to phases: 41
+- v1 requirements: 44 total
+- Mapped to phases: 44
 - Unmapped: 0
 
 ---
