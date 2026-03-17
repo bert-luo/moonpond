@@ -59,6 +59,8 @@ class GameContract(BaseModel):
     nodes: list[NodeContract]
     game_manager_enums: dict[str, list[str]] = {}
     game_manager_properties: list[str] = []
+    game_manager_methods: list[str] = []
+    game_manager_signals: list[str] = []
     autoloads: list[str] = []
     main_scene: str = "Main.tscn"
     control_scheme: str

@@ -31,6 +31,11 @@ and group memberships.
 dependencies list on each NodeContract.
 - Define GameManager enum extensions (e.g. GameState variants) and properties \
 (score, lives, etc.).
+- Define game_manager_methods as the public methods GameManager should expose \
+(e.g. 'add_currency(amount: int)', 'can_afford(cost: int) -> bool'). These will \
+become real func stubs in game_manager.gd.
+- Define game_manager_signals as signals GameManager should declare \
+(e.g. 'score_changed', 'health_depleted'). These will become signal declarations.
 - Determine the control_scheme (wasd, click_to_move, drag, mouse_follow, \
 point_and_shoot) and controls mapping.
 - Select visual_style with palette (neon, retro, pastel, monochrome), \
@@ -66,6 +71,8 @@ Respond with a JSON object matching this GameContract schema:
   ],
   "game_manager_enums": {"EnumName": ["VARIANT1", "VARIANT2"]},
   "game_manager_properties": ["list of property names"],
+  "game_manager_methods": ["list of method signatures, e.g. add_currency(amount: int)"],
+  "game_manager_signals": ["list of signal names, e.g. score_changed"],
   "autoloads": ["list of autoload names"],
   "main_scene": "Main.tscn",
   "control_scheme": "string — one of wasd, click_to_move, drag, mouse_follow, point_and_shoot",
