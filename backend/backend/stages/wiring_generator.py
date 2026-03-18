@@ -34,15 +34,30 @@ def _build_wiring_system_prompt(
     contract: GameContract,
     generated_files: dict[str, str],
 ) -> str:
-    """Build the system prompt for Main.tscn generation."""
+    """Build the system prompt for Main.tscn generation.
+
+    Filters out dynamic nodes (spawn_mode='dynamic') from the contract
+    and generated files since they are instantiated at runtime, not
+    placed in the scene tree.
+    """
+    # Filter to static nodes only for scene tree assembly
+    static_nodes = [n for n in contract.nodes if n.spawn_mode == "static"]
+    static_contract = contract.model_copy(update={"nodes": static_nodes})
+
+    # Filter generated files to exclude dynamic node scripts
+    dynamic_script_paths = {n.script_path for n in contract.nodes if n.spawn_mode == "dynamic"}
+    static_generated_files = {k: v for k, v in generated_files.items() if k not in dynamic_script_paths}
+
     parts = [
         "Generate a Godot 4 text-format Main.tscn file that wires all these nodes together.",
         "",
-        f"Full game contract:\n{contract.model_dump_json(indent=2)}",
+        f"Full game contract:\n{static_contract.model_dump_json(indent=2)}",
         "",
-        f"Actually generated files: {json.dumps(sorted(generated_files.keys()))}",
+        f"Actually generated files: {json.dumps(sorted(static_generated_files.keys()))}",
         "",
         "Rules:",
+        "- Dynamic nodes (spawn_mode='dynamic') are excluded from the scene tree — "
+        "they are instantiated at runtime by other scripts.",
         "- Use [ext_resource] with unique incrementing integer IDs for each script.",
         "- Each node in the scene tree must reference the correct script via its ext_resource ID.",
         "- The root node should be a Node2D named 'Main'.",
