@@ -95,16 +95,30 @@ async def run_visual_polisher(
 
     response = await client.messages.create(
         model=SONNET_MODEL,
-        max_tokens=8192,
+        max_tokens=16384,
         system=_POLISHER_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}],
+        stream=True,
     )
 
-    raw = response.content[0].text
+    collected_text = []
+    async for event in response:
+        if event.type == "content_block_delta" and hasattr(event.delta, "text"):
+            collected_text.append(event.delta.text)
+    raw = "".join(collected_text).strip()
 
-    # Strip markdown code fences if present
-    cleaned = re.sub(r"```(?:json)?\s*", "", raw)
-    cleaned = cleaned.strip().rstrip("`")
+    # Extract JSON from markdown fences or preamble text.
+    # The LLM sometimes adds explanatory text before the JSON block.
+    fence_match = re.search(r"```(?:json)?\s*\n(\{.*)\n\s*```", raw, re.DOTALL)
+    if fence_match:
+        raw = fence_match.group(1).strip()
+    elif raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```\s*$", "", raw)
+    elif not raw.startswith("{"):
+        json_start = raw.find("{")
+        if json_start > 0:
+            raw = raw[json_start:]
 
-    patched_files: dict[str, str] = json.loads(cleaned)
+    patched_files: dict[str, str] = json.loads(raw)
     return patched_files
