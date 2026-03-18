@@ -14,7 +14,7 @@ GAMES_DIR = _REPO_ROOT / "games"
 
 
 async def run_exporter(
-    job_id: str,
+    game_dir: str,
     files: dict[str, str],
     controls: list[dict],
     emit: EmitFn,
@@ -22,7 +22,7 @@ async def run_exporter(
     """Assemble a Godot project from generated scripts and export to WASM.
 
     Args:
-        job_id: Unique identifier for this generation job.
+        game_dir: Human-readable directory name (e.g. "space-invaders_20260316-041200").
         files: Dict mapping filename to GDScript source code.
         controls: List of control mapping dicts for the frontend.
         emit: Async callback for progress events.
@@ -37,18 +37,16 @@ async def run_exporter(
         ProgressEvent(type="stage_start", message="Building for web...")
     )
 
-    project_dir = GAMES_DIR / job_id / "project"
-    export_dir = GAMES_DIR / job_id / "export"
+    project_dir = GAMES_DIR / game_dir / "project"
+    export_dir = GAMES_DIR / game_dir / "export"
 
     # Copy the base template (dirs_exist_ok=True per Pitfall 6)
     shutil.copytree(TEMPLATE_DIR, project_dir, dirs_exist_ok=True)
 
-    # Write generated scripts into the scripts/ subdirectory
-    scripts_dir = project_dir / "scripts"
-    scripts_dir.mkdir(exist_ok=True)
-
+    # Write generated files into the project
+    # .tscn and .gd files go to project root (matching res:// paths in generated code)
     for filename, content in files.items():
-        (scripts_dir / filename).write_text(content)
+        (project_dir / filename).write_text(content)
 
     # Run Godot headless export
     result = await run_headless_export(project_dir, export_dir)
@@ -57,7 +55,7 @@ async def run_exporter(
         raise RuntimeError(f"Export failed: {result.stderr[:500]}")
 
     return GameResult(
-        job_id=job_id,
-        wasm_path=f"/games/{job_id}/export/index.html",
+        job_id=game_dir,
+        wasm_path=f"/games/{game_dir}/export/index.html",
         controls=controls,
     )
