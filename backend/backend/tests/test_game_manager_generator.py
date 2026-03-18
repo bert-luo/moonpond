@@ -5,6 +5,7 @@ from __future__ import annotations
 from backend.stages.contract_models import GameContract, NodeContract
 from backend.stages.game_manager_generator import (
     _assemble_script,
+    _extract_method_name,
     generate_game_manager_script,
 )
 
@@ -246,3 +247,43 @@ def test_assemble_normalizes_body_indentation():
             break
     else:
         raise AssertionError("func do_thing() not found in script")
+
+
+# ---------------------------------------------------------------------------
+# Bug A: Duplicate base method filtering
+# ---------------------------------------------------------------------------
+
+
+def test_extract_method_name_parses_signature():
+    """_extract_method_name parses bare name from full GDScript signatures."""
+    assert _extract_method_name("set_state(new_state: int) -> void") == "set_state"
+    assert _extract_method_name("add_score(points: int)") == "add_score"
+
+
+def test_duplicate_base_method_filtered():
+    """Contract methods that duplicate template base methods are filtered out."""
+    contract = _make_contract(
+        game_manager_methods=[
+            "set_state(new_state: int) -> void",
+            "add_score(points: int)",
+        ]
+    )
+    script = generate_game_manager_script(contract)
+
+    # set_state should appear exactly once (from template), not duplicated
+    count = script.count("func set_state")
+    assert count == 1, f"func set_state appeared {count} times, expected 1"
+
+    # add_score should appear once (from contract)
+    count = script.count("func add_score")
+    assert count == 1, f"func add_score appeared {count} times, expected 1"
+
+
+def test_similar_name_not_filtered():
+    """Methods with names that are superstrings of base methods are NOT filtered."""
+    contract = _make_contract(
+        game_manager_methods=["set_state_from_network(data: Dictionary)"]
+    )
+    script = generate_game_manager_script(contract)
+
+    assert "func set_state_from_network" in script
