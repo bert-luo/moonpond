@@ -21,6 +21,16 @@ from backend.stages.spec_expander import run_spec_expander
 from backend.stages.wiring_generator import run_wiring_generator
 
 
+def _strip_node_tscn(node_files: dict[str, str]) -> dict[str, str]:
+    """Remove .tscn files from node generator output.
+
+    Per-node .tscn files from the LLM frequently contain mismatched
+    ExtResource IDs and incorrect script attachments (Bugs C, F).
+    The wiring stage owns all scene assembly from the contract.
+    """
+    return {k: v for k, v in node_files.items() if not k.endswith(".tscn")}
+
+
 def _slugify(title: str, max_len: int = 40) -> str:
     """Convert a game title to a filesystem-safe slug."""
     slug = title.lower().strip()
@@ -107,6 +117,12 @@ class ContractPipeline:
             node_files = await run_parallel_node_generation(
                 self._client, contract, emit
             )
+
+            # Strip per-node .tscn files — wiring stage owns all scene assembly.
+            # Per-node .tscn from the LLM frequently has invalid ExtResource IDs
+            # and wrong script attachments (Bugs C, F).
+            node_files = _strip_node_tscn(node_files)
+
             if dump_dir:
                 node_dir = dump_dir / "3_node_files"
                 node_dir.mkdir(exist_ok=True)
