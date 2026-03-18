@@ -19,6 +19,21 @@ logger = logging.getLogger(__name__)
 
 SONNET_MODEL = "claude-sonnet-4-20250514"
 
+# Method names already defined in _TEMPLATE_BASE -- contract methods with these
+# bare names must be filtered out to prevent duplicate func definitions.
+_TEMPLATE_BASE_METHOD_NAMES: frozenset[str] = frozenset({
+    "_ready", "set_palette", "get_palette_color", "set_state",
+})
+
+
+def _extract_method_name(signature: str) -> str:
+    """Extract the bare method name from a GDScript signature.
+
+    >>> _extract_method_name("set_state(new_state: int) -> void")
+    'set_state'
+    """
+    return signature.split("(")[0].strip()
+
 # ---------------------------------------------------------------------------
 # Template base -- hardcoded from godot/templates/base_2d/game_manager.gd
 # This is the static core that every generated game_manager.gd preserves.
@@ -193,9 +208,14 @@ def _assemble_script(
             parts.append(f"var {prop}")
 
     # --- Methods (with real bodies or fallback stubs) ---
-    if contract.game_manager_methods:
+    # Filter out methods whose bare name duplicates a template base method
+    contract_methods = [
+        m for m in contract.game_manager_methods
+        if _extract_method_name(m) not in _TEMPLATE_BASE_METHOD_NAMES
+    ]
+    if contract_methods:
         parts.append("\n# --- Game-specific methods ---")
-        for method_sig in contract.game_manager_methods:
+        for method_sig in contract_methods:
             parts.append(f"func {method_sig}:")
             body = method_bodies.get(method_sig)
             if body:
