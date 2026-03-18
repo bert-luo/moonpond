@@ -373,7 +373,8 @@ def test_prompt_includes_base_api_even_when_empty():
 
     assert "set_palette" in prompt
     assert "get_palette_color" in prompt
-    assert "GameState" in prompt
+    # GameState no longer hardcoded in base API -- comes from contract enums
+    assert "set_state" in prompt
 
 
 def test_prompt_no_longer_says_preexisting_autoload():

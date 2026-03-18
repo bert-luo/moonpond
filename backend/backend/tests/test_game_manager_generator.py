@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 from backend.stages.contract_models import GameContract, NodeContract
-from backend.stages.game_manager_generator import generate_game_manager_script
+from backend.stages.game_manager_generator import (
+    _assemble_script,
+    generate_game_manager_script,
+)
 
 
 def _make_contract(**kwargs) -> GameContract:
@@ -36,13 +39,14 @@ def test_empty_contract_produces_base_template():
     # Must contain the base template pieces
     assert "extends Node" in script
     assert "var active_palette: Gradient = null" in script
-    assert "enum GameState { PLAYING, WON, LOST }" in script
-    assert "var state: GameState = GameState.PLAYING" in script
+    assert "var state: int = 0" in script
     assert "func _ready() -> void:" in script
     assert 'active_palette = load("res://assets/palettes/neon.tres")' in script
     assert "func set_palette(palette_name: String) -> void:" in script
     assert "func get_palette_color(t: float) -> Color:" in script
-    assert "func set_state(new_state: GameState) -> void:" in script
+    assert "func set_state(new_state: int) -> void:" in script
+    # No hardcoded GameState enum in template -- comes from contract
+    assert "enum GameState" not in script
 
 
 # ---------------------------------------------------------------------------
@@ -64,8 +68,8 @@ def test_contract_enums_adds_enum_blocks():
     assert "enum PowerUp { SPEED, SHIELD }" in script
 
 
-def test_gamestate_enum_not_duplicated():
-    """If the contract includes GameState in enums, it should NOT be duplicated."""
+def test_gamestate_enum_from_contract():
+    """GameState enum should come from the contract, not the template."""
     contract = _make_contract(
         game_manager_enums={
             "GameState": ["PLAYING", "WON", "LOST", "PAUSED"],
@@ -73,9 +77,10 @@ def test_gamestate_enum_not_duplicated():
     )
     script = generate_game_manager_script(contract)
 
-    # GameState should appear exactly once as an enum declaration
+    # GameState should appear exactly once, with contract-specified variants
     count = script.count("enum GameState")
     assert count == 1, f"GameState enum appeared {count} times, expected 1"
+    assert "enum GameState { PLAYING, WON, LOST, PAUSED }" in script
 
 
 # ---------------------------------------------------------------------------
@@ -152,7 +157,6 @@ def test_full_contract_includes_all_sections():
 
     # Base preserved
     assert "extends Node" in script
-    assert "enum GameState { PLAYING, WON, LOST }" in script
 
     # Extras added
     assert "enum Difficulty { EASY, HARD }" in script
@@ -162,3 +166,83 @@ def test_full_contract_includes_all_sections():
     assert "func add_score(points: int):" in script
     assert "signal score_changed" in script
     assert "signal health_depleted" in script
+
+
+# ---------------------------------------------------------------------------
+# Assembly with real method bodies
+# ---------------------------------------------------------------------------
+
+
+def test_assemble_with_method_bodies_replaces_stubs():
+    """When method_bodies are provided, they replace pass stubs."""
+    contract = _make_contract(
+        game_manager_properties=["score"],
+        game_manager_methods=[
+            "add_score(amount: int)",
+            "get_score() -> int",
+        ],
+        game_manager_signals=["score_changed"],
+    )
+    bodies = {
+        "add_score(amount: int)": "\tscore += amount\n\tscore_changed.emit()",
+        "get_score() -> int": "\treturn score",
+    }
+    script = _assemble_script(contract, method_bodies=bodies)
+
+    assert "func add_score(amount: int):" in script
+    assert "score += amount" in script
+    assert "score_changed.emit()" in script
+    assert "func get_score() -> int:" in script
+    assert "return score" in script
+    # No pass stubs for methods that got bodies
+    # (pass may appear in template base methods, so check specifically)
+    lines = script.split("\n")
+    for i, line in enumerate(lines):
+        if "func add_score" in line or "func get_score" in line:
+            assert lines[i + 1].strip() != "pass"
+
+
+def test_assemble_falls_back_to_stub_for_missing_body():
+    """Methods missing from method_bodies dict should get pass stubs."""
+    contract = _make_contract(
+        game_manager_methods=[
+            "add_score(amount: int)",
+            "reset()",
+        ],
+    )
+    bodies = {
+        "add_score(amount: int)": "\tscore += amount",
+        # reset() intentionally missing
+    }
+    script = _assemble_script(contract, method_bodies=bodies)
+
+    assert "score += amount" in script
+    # reset() should have pass stub
+    lines = script.split("\n")
+    for i, line in enumerate(lines):
+        if "func reset():" in line:
+            assert lines[i + 1].strip() == "pass"
+            break
+    else:
+        raise AssertionError("func reset() not found in script")
+
+
+def test_assemble_normalizes_body_indentation():
+    """Method bodies without leading tabs should get tab-indented."""
+    contract = _make_contract(
+        game_manager_methods=["do_thing()"],
+    )
+    # Body with no leading tabs (simulating raw LLM output)
+    bodies = {
+        "do_thing()": "var x = 1\nprint(x)",
+    }
+    script = _assemble_script(contract, method_bodies=bodies)
+
+    lines = script.split("\n")
+    for i, line in enumerate(lines):
+        if "func do_thing():" in line:
+            assert lines[i + 1] == "\tvar x = 1"
+            assert lines[i + 2] == "\tprint(x)"
+            break
+    else:
+        raise AssertionError("func do_thing() not found in script")

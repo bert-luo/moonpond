@@ -15,7 +15,7 @@ from anthropic import AsyncAnthropic
 from backend.pipelines.base import EmitFn, GameResult, ProgressEvent
 from backend.stages.contract_generator import run_contract_generator
 from backend.stages.exporter import GAMES_DIR, run_exporter
-from backend.stages.game_manager_generator import generate_game_manager_script
+from backend.stages.game_manager_generator import generate_game_manager_script_async
 from backend.stages.node_generator import run_parallel_node_generation
 from backend.stages.spec_expander import run_spec_expander
 from backend.stages.wiring_generator import run_wiring_generator
@@ -90,14 +90,16 @@ class ContractPipeline:
                 )
 
             # Stage 2.5: Generate game-specific game_manager.gd from contract
-            game_manager_code = generate_game_manager_script(contract)
-            gm_files = {"game_manager.gd": game_manager_code}
             await emit(
                 ProgressEvent(
                     type="stage_start",
-                    message="Generated game-specific GameManager...",
+                    message="Generating GameManager with method implementations...",
                 )
             )
+            game_manager_code = await generate_game_manager_script_async(
+                self._client, contract
+            )
+            gm_files = {"game_manager.gd": game_manager_code}
             if dump_dir:
                 (dump_dir / "2.5_game_manager.gd").write_text(game_manager_code)
 

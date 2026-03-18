@@ -19,6 +19,7 @@ from backend.stages.contract_models import GameContract, RichGameSpec
 logger = logging.getLogger(__name__)
 
 SONNET_MODEL = "claude-sonnet-4-20250514"
+OPUS_MODEL = "claude-opus-4-6"
 
 _CONTRACT_GENERATOR_SYSTEM_PROMPT = """\
 You are a Godot 4 game architect. Given a detailed game specification (RichGameSpec), \
@@ -113,13 +114,20 @@ async def run_contract_generator(
     )
 
     response = await client.messages.create(
-        model=SONNET_MODEL,
-        max_tokens=8192,
+        model=OPUS_MODEL,
+        max_tokens=16384,
         system=_CONTRACT_GENERATOR_SYSTEM_PROMPT,
         messages=[{"role": "user", "content": user_message}],
+        thinking={"type": "adaptive"},
     )
 
-    raw = response.content[0].text
+    text_blocks = [block.text for block in response.content if block.type == "text"]
+    if not text_blocks:
+        raise RuntimeError(
+            f"Contract generator returned no text blocks. "
+            f"Content types: {[b.type for b in response.content]}"
+        )
+    raw = text_blocks[0]
     parsed = json.loads(raw)
     result = GameContract.model_validate(parsed)
 

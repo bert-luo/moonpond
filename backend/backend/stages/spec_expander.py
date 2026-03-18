@@ -16,7 +16,7 @@ from backend.stages.contract_models import RichGameSpec
 
 logger = logging.getLogger(__name__)
 
-SONNET_MODEL = "claude-sonnet-4-20250514"
+SONNET_MODEL = "claude-sonnet-4-6"
 
 _SPEC_EXPANDER_SYSTEM_PROMPT = """\
 You are a game design assistant. Given a user's raw game idea, expand it into a \

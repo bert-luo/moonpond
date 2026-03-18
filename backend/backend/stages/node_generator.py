@@ -24,7 +24,7 @@ from backend.stages.models import (
 
 logger = logging.getLogger(__name__)
 
-SONNET_MODEL = "claude-sonnet-4-20250514"
+SONNET_MODEL = "claude-sonnet-4-6"
 
 
 def _build_depth_map(nodes: list[NodeContract]) -> dict[str, int]:
@@ -81,15 +81,16 @@ def _build_game_manager_api_block(contract: GameContract) -> str:
     lines = [
         "GameManager API (autoload — available globally via GameManager.xxx):",
         "  Base API (always available):",
-        "    Properties: active_palette (Gradient), state (GameState)",
-        "    Methods: set_palette(palette_name: String), get_palette_color(t: float) -> Color, set_state(new_state: GameState)",
-        "    Enums: GameState { PLAYING, WON, LOST }",
+        "    Properties: active_palette (Gradient), state (int)",
+        "    Methods: set_palette(palette_name: String), get_palette_color(t: float) -> Color, set_state(new_state: int)",
     ]
 
     # Build game-specific subsections
     game_lines: list[str] = []
     if contract.game_manager_properties:
-        game_lines.append(f"    Properties: {', '.join(contract.game_manager_properties)}")
+        game_lines.append(
+            f"    Properties: {', '.join(contract.game_manager_properties)}"
+        )
     if contract.game_manager_methods:
         game_lines.append(f"    Methods: {', '.join(contract.game_manager_methods)}")
     if contract.game_manager_signals:
@@ -190,6 +191,18 @@ def _build_node_system_prompt(node: NodeContract, contract: GameContract) -> str
         parts.append(f"Emit EXACTLY these signals: {node.signals}")
     if node.groups:
         parts.append(f"Add to EXACTLY these groups: {node.groups}")
+
+    parts.append(
+        "\nSCENE TREE REFERENCES — NEVER use @onready with literal node paths "
+        "like $UI/ScoreLabel or $Systems/Timer. The scene tree hierarchy is "
+        "determined by a separate wiring stage, so hardcoded paths WILL break. "
+        "Instead, use Godot 4 unique-name references: %NodeName "
+        "(e.g. @onready var score_label: Label = %ScoreLabel). "
+        "This requires unique_name_in_owner = true on the target node in the "
+        ".tscn, which the wiring stage will set. "
+        "For dynamically spawned nodes, use groups: "
+        'get_tree().get_nodes_in_group("group_name").'
+    )
 
     parts.append(
         "\nVISUALS — There are NO image/texture assets available. "

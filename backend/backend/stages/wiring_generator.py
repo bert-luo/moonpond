@@ -18,9 +18,11 @@ from backend.stages.contract_models import GameContract
 
 logger = logging.getLogger(__name__)
 
-SONNET_MODEL = "claude-sonnet-4-20250514"
+SONNET_MODEL = "claude-sonnet-4-6"
 
-_REPO_ROOT = Path(__file__).parent.parent.parent.parent  # stages -> backend -> backend -> repo root
+_REPO_ROOT = Path(
+    __file__
+).parent.parent.parent.parent  # stages -> backend -> backend -> repo root
 TEMPLATE_DIR = _REPO_ROOT / "godot" / "templates" / "base_2d"
 
 
@@ -43,6 +45,8 @@ def _build_wiring_system_prompt(
         "- Connect signals as specified in the node contracts.",
         "- All ext_resource paths use res:// (project root).",
         "- Node names must be unique among siblings.",
+        "- Set unique_name_in_owner = true on EVERY node that has a script attached. "
+        "This allows scripts to reference siblings via %NodeName instead of brittle paths.",
         "",
         "Respond with ONLY the Main.tscn file content. No markdown fences, no explanation.",
     ]
@@ -58,7 +62,7 @@ def _patch_project_godot_autoloads(
     CRITICAL: The [input] section must remain untouched.
     """
     # Build new autoload section
-    autoload_lines = ['[autoload]\n', '\n', 'GameManager="*res://game_manager.gd"\n']
+    autoload_lines = ["[autoload]\n", "\n", 'GameManager="*res://game_manager.gd"\n']
     for name in autoloads:
         # Convention: autoload script is snake_case version of the name
         script = name[0].lower() + name[1:]
@@ -84,9 +88,7 @@ async def run_wiring_generator(
 
     Returns dict mapping filename -> content for wiring files only.
     """
-    await emit(
-        ProgressEvent(type="stage_start", message="Wiring scene tree...")
-    )
+    await emit(ProgressEvent(type="stage_start", message="Wiring scene tree..."))
 
     # Generate Main.tscn via LLM
     system_prompt = _build_wiring_system_prompt(contract, generated_files)
