@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 SONNET_MODEL = "claude-sonnet-4-6"
 
+# Autoload names that are always hardcoded in the [autoload] section.
+# Contract autoloads with these names are skipped to prevent duplicates.
+_HARDCODED_AUTOLOAD_NAMES: frozenset[str] = frozenset({"GameManager"})
+
 _REPO_ROOT = Path(
     __file__
 ).parent.parent.parent.parent  # stages -> backend -> backend -> repo root
@@ -64,6 +68,8 @@ def _patch_project_godot_autoloads(
     # Build new autoload section
     autoload_lines = ["[autoload]\n", "\n", 'GameManager="*res://game_manager.gd"\n']
     for name in autoloads:
+        if name in _HARDCODED_AUTOLOAD_NAMES:
+            continue  # already emitted in hardcoded list above
         # Convention: autoload script is snake_case version of the name
         script = name[0].lower() + name[1:]
         # Convert CamelCase to snake_case for the script filename
