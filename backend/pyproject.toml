@@ -6,6 +6,7 @@ dependencies = [
     "fastapi[standard]>=0.135.0",
     "aiofiles",
     "anthropic>=0.84.0",
+    "python-dotenv>=1.0.0",
 ]
 
 [project.optional-dependencies]
