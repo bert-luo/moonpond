@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.2-02-PLAN.md
-last_updated: "2026-03-18T10:31:04.054Z"
+stopped_at: Completed 05.2-01-PLAN.md
+last_updated: "2026-03-18T10:31:40.100Z"
 last_activity: 2026-03-16 — Completed 05-01-PLAN.md
 progress:
   total_phases: 9
   completed_phases: 5
   total_plans: 24
-  completed_plans: 19
+  completed_plans: 20
   percent: 81
 ---
 
@@ -69,6 +69,7 @@ Progress: [████████░░] 81%
 | Phase 05.1 P01 | 3min | 2 tasks | 6 files |
 | Phase 05.1 P02 | 3min | 2 tasks | 2 files |
 | Phase 05.2 P02 | 2min | 1 tasks | 2 files |
+| Phase 05.2 P01 | 2min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,7 @@ Recent decisions affecting current work:
 - [Phase 05.1]: Base palette/state API always included in GameManager API block even when contract fields empty
 - [Phase 05.1]: Dependency API blocks placed before contract JSON for LLM attention priority
 - [Phase 05.2]: Strip .tscn after node generation before intermediate dump; extract as module-level helper for testability
+- [Phase 05.2]: Frozenset membership check for O(1) dedup of base methods and hardcoded autoloads
 
 ### Roadmap Evolution
 
@@ -137,6 +139,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T10:31:04.051Z
-Stopped at: Completed 05.2-02-PLAN.md
+Last session: 2026-03-18T10:31:40.097Z
+Stopped at: Completed 05.2-01-PLAN.md
 Resume file: None

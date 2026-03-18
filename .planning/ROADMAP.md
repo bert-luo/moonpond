@@ -169,7 +169,7 @@ Plans:
   3. Per-node .tscn files from the LLM are stripped before reaching the wiring stage — Main.tscn is assembled solely by the wiring generator from the contract
   4. Signal signatures in the contract include argument types so node generators emit signals with correct arguments
   5. Nodes marked as dynamically spawned (spawn_mode="dynamic") are excluded from the Main.tscn scene tree
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 05.2-01-PLAN.md — Deterministic fixes: filter duplicate base methods (Bug A) + deduplicate autoloads (Bug B)
