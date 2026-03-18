@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.1-02-PLAN.md
-last_updated: "2026-03-17T07:55:10.852Z"
+stopped_at: Completed 05.2-02-PLAN.md
+last_updated: "2026-03-18T10:31:04.054Z"
 last_activity: 2026-03-16 — Completed 05-01-PLAN.md
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 5
-  total_plans: 21
-  completed_plans: 18
+  total_plans: 24
+  completed_plans: 19
   percent: 81
 ---
 
@@ -68,6 +68,7 @@ Progress: [████████░░] 81%
 | Phase 05 P04 | 4min | 2 tasks | 4 files |
 | Phase 05.1 P01 | 3min | 2 tasks | 6 files |
 | Phase 05.1 P02 | 3min | 2 tasks | 2 files |
+| Phase 05.2 P02 | 2min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,7 @@ Recent decisions affecting current work:
 - [Phase 05.1]: GameState enum skipped during contract enum generation to prevent duplication
 - [Phase 05.1]: Base palette/state API always included in GameManager API block even when contract fields empty
 - [Phase 05.1]: Dependency API blocks placed before contract JSON for LLM attention priority
+- [Phase 05.2]: Strip .tscn after node generation before intermediate dump; extract as module-level helper for testability
 
 ### Roadmap Evolution
 
@@ -122,6 +124,7 @@ Recent decisions affecting current work:
 - Phase 03.2 inserted after Phase 3: Containerization (URGENT) — Docker container packaging Godot headless binary, export templates, and Python backend for reproducible builds across machines
 - Phase 5 added: pipeline optimization
 - Phase 5.1 inserted after Phase 5: Contract Pipeline Context Enrichment — generate game_manager.gd from contract, inject GameManager API + sibling node APIs into node generation prompts
+- Phase 5.2 inserted after Phase 5.1: Fix Pipeline Generation Failure Modes — duplicate method definitions, invalid .tscn ExtResource IDs, signal argument mismatches, duplicate autoloads
 
 ### Pending Todos
 
@@ -134,6 +137,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-17T07:52:53.848Z
-Stopped at: Completed 05.1-02-PLAN.md
+Last session: 2026-03-18T10:31:04.051Z
+Stopped at: Completed 05.2-02-PLAN.md
 Resume file: None
