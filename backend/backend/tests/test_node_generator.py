@@ -450,6 +450,42 @@ def test_prompt_skips_unknown_dependency():
     assert "Sibling Node APIs" not in prompt
 
 
+def test_signal_signatures_with_args_in_prompt():
+    """Node with signal signatures including args -> prompt contains them verbatim."""
+    node = NodeContract(
+        script_path="bird.gd",
+        node_type="CharacterBody2D",
+        description="Flappy bird",
+        signals=["bird_flapped(velocity: Vector2)", "died"],
+    )
+    contract = _make_contract([node])
+    prompt = _build_node_system_prompt(node, contract)
+
+    assert "bird_flapped(velocity: Vector2)" in prompt
+    assert "died" in prompt
+
+
+def test_spawn_mode_defaults_to_static():
+    """NodeContract() without spawn_mode has spawn_mode == 'static'."""
+    node = NodeContract(
+        script_path="player.gd",
+        node_type="CharacterBody2D",
+        description="Player",
+    )
+    assert node.spawn_mode == "static"
+
+
+def test_spawn_mode_accepts_dynamic():
+    """NodeContract(spawn_mode='dynamic', ...) validates successfully."""
+    node = NodeContract(
+        script_path="bullet.gd",
+        node_type="Area2D",
+        description="Bullet",
+        spawn_mode="dynamic",
+    )
+    assert node.spawn_mode == "dynamic"
+
+
 def test_prompt_multiple_dependencies():
     """Node depends on two siblings -> both appear in prompt."""
     player = NodeContract(
