@@ -8,6 +8,8 @@ These models define the typed interfaces between pipeline stages:
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -45,6 +47,7 @@ class NodeContract(BaseModel):
     signals: list[str] = []
     groups: list[str] = []
     dependencies: list[str] = []
+    spawn_mode: Literal["static", "dynamic"] = "static"
 
 
 class GameContract(BaseModel):

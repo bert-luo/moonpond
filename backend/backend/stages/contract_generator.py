@@ -50,6 +50,8 @@ Reference it via GameManager.set_state(), GameManager.score, etc.
 All node generators will implement EXACTLY these interfaces.
 - Nodes with empty dependencies lists are leaf nodes that can be generated in parallel.
 - Nodes that depend on other nodes' scripts must list those script_paths in dependencies.
+- Set spawn_mode to 'dynamic' for any node that is instantiated at runtime by another script \
+(e.g. bullets, spawned enemies, particle effects). Static nodes are placed in the scene tree by the wiring stage.
 
 Available palettes: neon, retro, pastel, monochrome
 Available shaders: pixel_art, glow, scanlines, chromatic_aberration, screen_distortion
@@ -65,15 +67,16 @@ Respond with a JSON object matching this GameContract schema:
       "node_type": "string — Godot node type (CharacterBody2D, Area2D, etc.)",
       "description": "string — what this node does",
       "methods": ["list of method signatures, e.g. shoot(), take_damage(amount: int)"],
-      "signals": ["list of signal names, e.g. died, health_changed"],
+      "signals": ["list of signal signatures with argument types where applicable, e.g. died, health_changed(new_health: int), score_updated(points: int, combo: int)"],
       "groups": ["list of group names"],
-      "dependencies": ["list of script_paths this node depends on"]
+      "dependencies": ["list of script_paths this node depends on"],
+      "spawn_mode": "static | dynamic — use 'dynamic' for nodes created at runtime via instantiate()/add_child() (bullets, spawned enemies, particles). Default: static"
     }
   ],
   "game_manager_enums": {"EnumName": ["VARIANT1", "VARIANT2"]},
   "game_manager_properties": ["list of property names"],
   "game_manager_methods": ["list of method signatures, e.g. add_currency(amount: int)"],
-  "game_manager_signals": ["list of signal names, e.g. score_changed"],
+  "game_manager_signals": ["list of signal signatures, e.g. score_changed(points: int), game_over"],
   "autoloads": ["list of autoload names"],
   "main_scene": "Main.tscn",
   "control_scheme": "string — one of wasd, click_to_move, drag, mouse_follow, point_and_shoot",
