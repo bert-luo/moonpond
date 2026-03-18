@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.2-01-PLAN.md
-last_updated: "2026-03-18T10:31:40.100Z"
+stopped_at: Completed 05.2-03-PLAN.md
+last_updated: "2026-03-18T10:36:28.569Z"
 last_activity: 2026-03-16 — Completed 05-01-PLAN.md
 progress:
   total_phases: 9
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 24
-  completed_plans: 20
+  completed_plans: 21
   percent: 81
 ---
 
@@ -70,6 +70,7 @@ Progress: [████████░░] 81%
 | Phase 05.1 P02 | 3min | 2 tasks | 2 files |
 | Phase 05.2 P02 | 2min | 1 tasks | 2 files |
 | Phase 05.2 P01 | 2min | 2 tasks | 4 files |
+| Phase 05.2 P03 | 2min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,8 @@ Recent decisions affecting current work:
 - [Phase 05.1]: Dependency API blocks placed before contract JSON for LLM attention priority
 - [Phase 05.2]: Strip .tscn after node generation before intermediate dump; extract as module-level helper for testability
 - [Phase 05.2]: Frozenset membership check for O(1) dedup of base methods and hardcoded autoloads
+- [Phase 05.2]: Literal['static', 'dynamic'] for spawn_mode with default 'static' -- backward compatible
+- [Phase 05.2]: model_copy(update=...) for filtered contract view in wiring prompt rather than mutating original
 
 ### Roadmap Evolution
 
@@ -139,6 +142,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T10:31:40.097Z
-Stopped at: Completed 05.2-01-PLAN.md
+Last session: 2026-03-18T10:36:28.563Z
+Stopped at: Completed 05.2-03-PLAN.md
 Resume file: None
