@@ -11,6 +11,7 @@ import pytest
 from backend.pipelines.base import ProgressEvent
 from backend.stages.contract_models import GameContract, NodeContract
 from backend.stages.wiring_generator import (
+    _build_wiring_system_prompt,
     _patch_project_godot_autoloads,
     run_wiring_generator,
 )
@@ -303,3 +304,72 @@ def test_empty_autoloads_only_gamemanager():
     # No other autoload entries besides GameManager
     autoload_section = result.split("[autoload]")[1].split("[")[0]
     assert autoload_section.count("=") == 1  # only GameManager line
+
+
+# ---------------------------------------------------------------------------
+# Bug E: Dynamic node filtering tests
+# ---------------------------------------------------------------------------
+
+
+def test_dynamic_nodes_excluded_from_wiring_prompt():
+    """Contract with static + dynamic nodes -> wiring prompt excludes dynamic node."""
+    static_player = NodeContract(
+        script_path="player.gd",
+        node_type="CharacterBody2D",
+        description="Player character",
+        spawn_mode="static",
+    )
+    static_enemy = NodeContract(
+        script_path="enemy.gd",
+        node_type="Area2D",
+        description="Enemy",
+        spawn_mode="static",
+    )
+    dynamic_bullet = NodeContract(
+        script_path="bullet.gd",
+        node_type="Area2D",
+        description="Bullet projectile",
+        spawn_mode="dynamic",
+    )
+    contract = _make_contract([static_player, static_enemy, dynamic_bullet])
+    generated_files = {
+        "player.gd": "extends CharacterBody2D",
+        "enemy.gd": "extends Area2D",
+        "bullet.gd": "extends Area2D",
+    }
+
+    prompt = _build_wiring_system_prompt(contract, generated_files)
+
+    # The contract JSON in the prompt should contain player.gd and enemy.gd
+    # but NOT bullet.gd (dynamic node excluded)
+    assert "player.gd" in prompt
+    assert "enemy.gd" in prompt
+    assert "bullet.gd" not in prompt
+
+
+def test_all_static_nodes_included_in_wiring_prompt():
+    """Contract with only static nodes -> all appear in wiring prompt."""
+    nodes = [
+        NodeContract(
+            script_path="player.gd",
+            node_type="CharacterBody2D",
+            description="Player",
+            spawn_mode="static",
+        ),
+        NodeContract(
+            script_path="enemy.gd",
+            node_type="Area2D",
+            description="Enemy",
+            spawn_mode="static",
+        ),
+    ]
+    contract = _make_contract(nodes)
+    generated_files = {
+        "player.gd": "extends CharacterBody2D",
+        "enemy.gd": "extends Area2D",
+    }
+
+    prompt = _build_wiring_system_prompt(contract, generated_files)
+
+    assert "player.gd" in prompt
+    assert "enemy.gd" in prompt
