@@ -157,3 +157,21 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 Plans:
 - [ ] 05.1-01-PLAN.md — GameContract model extensions + game_manager.gd generator + pipeline wiring
 - [ ] 05.1-02-PLAN.md — GameManager API + sibling dependency API injection into node generation prompts
+
+### Phase 05.2: Fix Pipeline Generation Failure Modes (INSERTED)
+
+**Goal:** Systematically fix the remaining pipeline generation failure modes identified from inspecting game outputs — duplicate method definitions, invalid .tscn ExtResource IDs, signal argument mismatches, duplicate autoloads, and other issues that cause blank screens or runtime crashes
+**Requirements**: BUG-A, BUG-B, BUG-C, BUG-D, BUG-E, BUG-F
+**Depends on:** Phase 5.1
+**Success Criteria** (what must be TRUE):
+  1. game_manager.gd generation never duplicates base template methods (set_state, set_palette, get_palette_color, _ready) even when the contract includes methods with those names
+  2. project.godot autoload section never contains duplicate GameManager entries
+  3. Per-node .tscn files from the LLM are stripped before reaching the wiring stage — Main.tscn is assembled solely by the wiring generator from the contract
+  4. Signal signatures in the contract include argument types so node generators emit signals with correct arguments
+  5. Nodes marked as dynamically spawned (spawn_mode="dynamic") are excluded from the Main.tscn scene tree
+**Plans:** 3 plans
+
+Plans:
+- [ ] 05.2-01-PLAN.md — Deterministic fixes: filter duplicate base methods (Bug A) + deduplicate autoloads (Bug B)
+- [ ] 05.2-02-PLAN.md — Strip per-node .tscn files from pipeline output (Bugs C + F)
+- [ ] 05.2-03-PLAN.md — Signal signature enrichment (Bug D) + spawn_mode contract field + dynamic node filtering (Bug E)
