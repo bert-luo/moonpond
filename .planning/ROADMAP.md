@@ -175,3 +175,21 @@ Plans:
 - [ ] 05.2-01-PLAN.md — Deterministic fixes: filter duplicate base methods (Bug A) + deduplicate autoloads (Bug B)
 - [ ] 05.2-02-PLAN.md — Strip per-node .tscn files from pipeline output (Bugs C + F)
 - [ ] 05.2-03-PLAN.md — Signal signature enrichment (Bug D) + spawn_mode contract field + dynamic node filtering (Bug E)
+
+### Phase 6: Programmatic TSCN generation and display configuration
+
+**Goal:** Replace the LLM-based wiring generator with a deterministic TscnBuilder and SceneAssembler that produces all .tscn files programmatically from the contract and generated .gd files, and fix viewport size hallucination by adding display configuration to the template and node generator prompt
+**Requirements**: TSCN-01, TSCN-02, TSCN-03, TSCN-04, TSCN-05, TSCN-06
+**Depends on:** Phase 5.2
+**Success Criteria** (what must be TRUE):
+  1. Generated games have all required .tscn files present (Main.tscn + sub-scenes)
+  2. Every @onready %Name reference in .gd files resolves to an actual child node in the .tscn
+  3. Every preload("res://X.tscn") in .gd files has the corresponding .tscn file
+  4. No LLM calls for .tscn generation -- fully deterministic
+  5. All scripts use consistent viewport dimensions (no hardcoded screen sizes)
+  6. Existing test suite passes; new tests cover TscnBuilder and SceneAssembler
+**Plans:** 2 plans
+
+Plans:
+- [ ] 06-01-PLAN.md — TscnBuilder utility + SceneAssembler + @onready parser with full test suites
+- [ ] 06-02-PLAN.md — Pipeline integration, prompt updates, display config, existing test fixes
