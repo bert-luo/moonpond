@@ -54,9 +54,7 @@ class SceneAssembler:
     """Assembles all .tscn files from a GameContract and generated .gd files."""
 
     @staticmethod
-    def assemble(
-        contract: GameContract, node_files: dict[str, str]
-    ) -> dict[str, str]:
+    def assemble(contract: GameContract, node_files: dict[str, str]) -> dict[str, str]:
         """Produce all .tscn files as a dict mapping filename -> content.
 
         Args:
@@ -73,20 +71,14 @@ class SceneAssembler:
 
         # Pass B: Sub-scene .tscn for each non-Main scene_path
         for node in contract.nodes:
-            if (
-                node.scene_path
-                and node.scene_path != contract.main_scene
-                and node.spawn_mode == "static"
-            ):
+            if node.scene_path and node.scene_path != contract.main_scene:
                 tscn_content = SceneAssembler._build_sub_scene(node, node_files)
                 result[node.scene_path] = tscn_content
 
         return result
 
     @staticmethod
-    def _build_main_tscn(
-        contract: GameContract, node_files: dict[str, str]
-    ) -> str:
+    def _build_main_tscn(contract: GameContract, node_files: dict[str, str]) -> str:
         """Build Main.tscn with all static nodes."""
         b = TscnBuilder()
 
@@ -124,7 +116,12 @@ class SceneAssembler:
             else:
                 # Inline node: add script ext_resource and node with type
                 script_id = b.add_ext_resource("Script", f"res://{node.script_path}")
-                node_name = PurePosixPath(node.script_path).stem.replace("_", " ").title().replace(" ", "")
+                node_name = (
+                    PurePosixPath(node.script_path)
+                    .stem.replace("_", " ")
+                    .title()
+                    .replace(" ", "")
+                )
                 # Use the script filename stem as Pascal case name
                 # But prefer a cleaner approach: capitalize first letter of stem
                 node_name = _node_name_from_script(node.script_path)
@@ -140,9 +137,7 @@ class SceneAssembler:
         return b.serialize()
 
     @staticmethod
-    def _build_sub_scene(
-        node: NodeContract, node_files: dict[str, str]
-    ) -> str:
+    def _build_sub_scene(node: NodeContract, node_files: dict[str, str]) -> str:
         """Build a sub-scene .tscn for a node with scene_path."""
         b = TscnBuilder()
 
