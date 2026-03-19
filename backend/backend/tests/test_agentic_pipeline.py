@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock
 
@@ -167,8 +166,12 @@ class TestRunFileGeneration:
 
         await run_file_generation(client, SAMPLE_SPEC, tmp_path, emit, context_strategy="stateless")
 
-        # In stateless mode, second call should have fresh messages (only 1 user message)
+        # In stateless mode, second call's first message should be a fresh stateless prompt
+        # (not the accumulated history from the first call).
+        # Note: the messages list is mutated after the API call (assistant appended),
+        # so we check the first entry is a fresh user prompt containing "Files already generated".
         second_call_kwargs = client.messages.create.call_args_list[1].kwargs
         messages = second_call_kwargs["messages"]
-        assert len(messages) == 1
         assert messages[0]["role"] == "user"
+        assert "Files already generated" in messages[0]["content"]
+        assert "a.gd" in messages[0]["content"]

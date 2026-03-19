@@ -1,16 +1,20 @@
-"""File Generator — tool definitions and dispatch for the agentic pipeline.
+"""File Generator — tool definitions, dispatch, and multi-turn generation loop.
 
 Defines the write_file and read_file tools that the LLM agent calls via
-the Anthropic tool_use API, plus the dispatch function that executes them.
-
-The multi-turn file generation loop (run_file_generation) will be implemented
-in a later plan once the pipeline orchestrator is in place.
+the Anthropic tool_use API, the dispatch function that executes them, and
+the run_file_generation loop that drives the multi-turn conversation.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
+
+from anthropic import AsyncAnthropic
+
+from backend.pipelines.agentic.models import AgenticGameSpec
+from backend.pipelines.base import EmitFn, ProgressEvent
 
 logger = logging.getLogger(__name__)
 
@@ -115,3 +119,145 @@ async def _dispatch_tool(
 
     else:
         return f"ERROR: unknown tool {tool_name}"
+
+
+# ---------------------------------------------------------------------------
+# System prompt
+# ---------------------------------------------------------------------------
+
+GENERATOR_SYSTEM_PROMPT = """\
+You are an expert Godot 4 game developer. Your job is to generate all files \
+for a complete, playable 2D game project one at a time by calling write_file.
+
+IMPORTANT RULES:
+- Generate files in this order: main .gd scripts first, then scene files (.tscn), then auxiliary files.
+- The game viewport is 1152x648 pixels (from the template project.godot).
+- Use Godot 4 GDScript syntax: @onready, @export, signal declarations with "signal name", \
+typed variables with "var x: Type", super() instead of .func(), etc.
+- For .tscn files, use Godot 4 text scene format with [gd_scene], [ext_resource], \
+[sub_resource], and [node] sections. Use type="Script" for GDScript ext_resources.
+- Each write_file call should contain a COMPLETE file — never partial content.
+- Use read_file to inspect previously written files when generating dependent files.
+- When all files are complete and the game is ready to play, STOP calling tools. \
+Simply respond with a text summary of what you built.
+- Do NOT generate project.godot, export_presets.cfg, or .import files — those come from the template.
+- All entity scripts should extend appropriate Godot node types (Node2D, CharacterBody2D, Area2D, etc.).
+- Connect signals in _ready() using connect() — do NOT rely on editor signal connections.
+- The main scene is always Main.tscn with a root Node2D.\
+"""
+
+
+# ---------------------------------------------------------------------------
+# Multi-turn file generation loop
+# ---------------------------------------------------------------------------
+
+
+def _build_initial_prompt(spec: AgenticGameSpec) -> str:
+    """Build the initial user message from the game spec."""
+    spec_json = json.dumps(spec.model_dump(), indent=2)
+    return (
+        f"Generate all files for this Godot 4 game project.\n\n"
+        f"Game Specification:\n{spec_json}\n\n"
+        f"Start generating files now. Call write_file for each file, "
+        f"one at a time. Begin with the main gameplay scripts, then "
+        f"scene files (.tscn), then any auxiliary files."
+    )
+
+
+def _build_stateless_prompt(spec: AgenticGameSpec, existing_files: dict[str, str]) -> str:
+    """Build a fresh prompt listing spec and existing file names.
+
+    In stateless mode, each turn starts fresh. The prompt includes the spec
+    and existing file names (not contents — agent uses read_file for that).
+    """
+    spec_json = json.dumps(spec.model_dump(), indent=2)
+    file_list = "\n".join(f"  - {f}" for f in existing_files) if existing_files else "  (none yet)"
+    return (
+        f"You are generating files for a Godot 4 game project.\n\n"
+        f"Game Specification:\n{spec_json}\n\n"
+        f"Files already generated:\n{file_list}\n\n"
+        f"Continue generating the next file. Use read_file to inspect "
+        f"any existing file if needed. Call write_file with the next file. "
+        f"If all files are complete, respond with a text summary."
+    )
+
+
+async def run_file_generation(
+    client: AsyncAnthropic,
+    spec: AgenticGameSpec,
+    game_dir: Path,
+    emit: EmitFn,
+    *,
+    context_strategy: str = "full_history",
+) -> dict[str, str]:
+    """Run the multi-turn file generation agent loop.
+
+    The LLM calls write_file/read_file tools to build up the game project
+    iteratively. The loop continues until the LLM stops calling tools
+    (end_turn) or MAX_TURNS_PER_ITERATION is reached.
+
+    Args:
+        client: Anthropic async client.
+        spec: The game specification to implement.
+        game_dir: Path to the game project directory.
+        emit: Async callback for progress events.
+        context_strategy: "full_history" accumulates messages,
+            "stateless" resets each turn with a fresh prompt.
+
+    Returns:
+        Dict mapping filename -> content for all generated files.
+    """
+    generated_files: dict[str, str] = {}
+
+    # Build initial messages
+    messages: list[dict] = [{"role": "user", "content": _build_initial_prompt(spec)}]
+
+    for turn in range(MAX_TURNS_PER_ITERATION):
+        # In stateless mode, reset messages each turn (after first)
+        if context_strategy == "stateless" and turn > 0:
+            messages = [{"role": "user", "content": _build_stateless_prompt(spec, generated_files)}]
+
+        response = await client.messages.create(
+            model=GENERATOR_MODEL,
+            max_tokens=8192,
+            system=GENERATOR_SYSTEM_PROMPT,
+            tools=AGENT_TOOLS,
+            messages=messages,
+        )
+
+        # Append assistant turn with full content list
+        messages.append({"role": "assistant", "content": response.content})
+
+        # Exit on end_turn
+        if response.stop_reason == "end_turn":
+            break
+
+        # Process tool_use blocks
+        tool_results = []
+        for block in response.content:
+            if block.type == "tool_use":
+                result_str = await _dispatch_tool(
+                    block.name, block.input, game_dir, generated_files
+                )
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": result_str,
+                })
+                # Emit progress for write_file calls
+                if block.name == "write_file":
+                    filename = block.input.get("filename", "unknown")
+                    await emit(ProgressEvent(
+                        type="file_generated",
+                        message=f"Generated {filename}",
+                        data={"filename": filename},
+                    ))
+
+        # Defensive: no tool results means nothing to continue with
+        if not tool_results:
+            break
+
+        # Append user turn with tool results
+        messages.append({"role": "user", "content": tool_results})
+
+    return generated_files
