@@ -39,17 +39,20 @@ def _extract_method_name(signature: str) -> str:
 # This is the static core that every generated game_manager.gd preserves.
 # ---------------------------------------------------------------------------
 
-_TEMPLATE_BASE = '''\
+_TEMPLATE_HEADER = '''\
 # game_manager.gd
 # Autoloaded as GameManager -- available globally to all generated scenes.
 
 extends Node
+'''
+
+_TEMPLATE_BODY = '''\
 
 ## Active color palette. Default: neon. Pipeline sets this before gameplay starts.
 var active_palette: Gradient = null
 
-## Game state tracking. Enum variants come from the game contract.
-var state: int = 0
+## Game state tracking. Initialized to the first GameState variant from the contract.
+var state: int = {initial_state}
 
 func _ready() -> void:
 \t# Default palette: neon. Pipeline Visual Polisher overrides this.
@@ -72,6 +75,7 @@ func get_palette_color(t: float) -> Color:
 ## Called by generated scenes to update game state.
 func set_state(new_state: int) -> void:
 \tstate = new_state
+\temit_signal("state_changed", new_state)
 '''
 
 
@@ -94,11 +98,20 @@ Signals available (emit these where appropriate):
 Generate the method BODY (not the signature) for each of these methods:
 {methods}
 
+The template base already declares these (do NOT redeclare them):
+- `var state: int` — tracks current game state. Other nodes read `GameManager.state` directly.
+- `func set_state(new_state: int)` — updates `state` AND emits the `state_changed` signal.
+
 Rules:
 - Use ONLY the properties, enums, and signals listed above. Do not invent new ones.
 - Initialize properties to sensible defaults on first use if they are null \
 (e.g. if points == null: points = 0).
-- Emit relevant signals after state changes (e.g. emit points_changed after modifying points).
+- When changing game state, ALWAYS call `set_state(<GameState variant>)`. \
+This is critical — other nodes gate their logic on `GameManager.state` \
+(e.g. `if GameManager.state != GameState.PLAYING: return`). \
+If you only emit the signal without calling set_state(), the game will freeze. \
+Do NOT emit state_changed yourself — set_state() already does that.
+- Emit relevant signals after other state changes (e.g. emit score_changed after modifying score).
 - Return correct types matching the signatures.
 - Use tab indentation (real \\t characters, not spaces).
 - Keep implementations simple and correct. No over-engineering.
@@ -187,19 +200,27 @@ def _assemble_script(
     if method_bodies is None:
         method_bodies = {}
 
-    parts: list[str] = [_TEMPLATE_BASE]
+    parts: list[str] = [_TEMPLATE_HEADER]
+
+    # --- Enums first (so state initializer can reference GameState) ---
+    if contract.game_manager_enums:
+        parts.append("\n# --- Game-specific enums ---")
+        for name, variants in contract.game_manager_enums.items():
+            parts.append(f"enum {name} {{ {', '.join(variants)} }}")
+
+    # --- Template body (palette, state, set_state, etc.) ---
+    # Initialize state to the first GameState variant if available
+    initial_state = "0"
+    if contract.game_manager_enums and "GameState" in contract.game_manager_enums:
+        first_variant = contract.game_manager_enums["GameState"][0]
+        initial_state = f"GameState.{first_variant}"
+    parts.append(_TEMPLATE_BODY.format(initial_state=initial_state))
 
     # --- Signals ---
     if contract.game_manager_signals:
         parts.append("\n# --- Game-specific signals ---")
         for sig in contract.game_manager_signals:
             parts.append(f"signal {sig}")
-
-    # --- Enums (all from contract, including GameState) ---
-    if contract.game_manager_enums:
-        parts.append("\n# --- Game-specific enums ---")
-        for name, variants in contract.game_manager_enums.items():
-            parts.append(f"enum {name} {{ {', '.join(variants)} }}")
 
     # --- Properties ---
     if contract.game_manager_properties:
