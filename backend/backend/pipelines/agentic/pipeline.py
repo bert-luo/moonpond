@@ -14,6 +14,7 @@ from pathlib import Path
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.agentic.file_generator import run_file_generation
+from backend.pipelines.agentic.input_map import expand_input_map
 from backend.pipelines.agentic.models import AgenticGameSpec
 from backend.pipelines.agentic.spec_generator import run_spec_generator
 from backend.pipelines.agentic.verifier import run_verifier
@@ -221,6 +222,11 @@ class AgenticPipeline:
                 }
 
                 fix_ctx = _build_fix_context(spec, flagged_contents, errors_by_file)
+
+            # Expand simplified input map to full Godot Object() format
+            if "project.godot" in all_files:
+                all_files["project.godot"] = expand_input_map(all_files["project.godot"])
+                (project_dir / "project.godot").write_text(all_files["project.godot"])
 
             # Stage 3: Export
             result = await run_exporter(
