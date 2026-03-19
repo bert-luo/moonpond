@@ -193,3 +193,23 @@ Plans:
 Plans:
 - [ ] 06-01-PLAN.md — TscnBuilder utility + SceneAssembler + @onready parser with full test suites
 - [ ] 06-02-PLAN.md — Pipeline integration, prompt updates, display config, existing test fixes
+
+### Phase 7: Agentic Pipeline — lightweight agent-loop pipeline with spec generation, todo-driven iterative file generation, and verifier agent
+
+**Goal:** A new pipeline strategy ("agentic") that uses a single multi-turn LLM conversation to generate a complete game through a spec -> todo-driven file generation -> LLM verification -> targeted fix loop, registered alongside the existing contract and multi_stage pipelines
+**Requirements**: AGNT-01, AGNT-02, AGNT-03, AGNT-04, AGNT-05, AGNT-06, AGNT-07, AGNT-08, AGNT-09
+**Depends on:** Phase 6
+**Success Criteria** (what must be TRUE):
+  1. AgenticPipeline is registered as "agentic" in the pipeline registry and selectable via get_pipeline("agentic")
+  2. The pipeline uses Anthropic tool_use API (write_file, read_file tools) for multi-turn file generation with correct message role alternation
+  3. A separate verifier LLM call audits all generated files and produces a structured VerifierResult with typed errors
+  4. The generate-verify-fix loop runs up to MAX_ITERATIONS, with targeted fixes only for files the verifier flagged
+  5. All intermediate state (spec, per-iteration files, verifier results) is persisted in numbered subdirectories
+  6. AgenticPipeline.generate() satisfies the GamePipeline Protocol and produces a GameResult via the shared exporter
+  7. Configurable context strategy: full_history (default) or stateless mode
+**Plans:** 3 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — Data models (AgenticGameSpec, VerifierResult), spec generator, tool definitions and dispatch
+- [ ] 07-02-PLAN.md — Multi-turn file generation loop + verifier agent
+- [ ] 07-03-PLAN.md — AgenticPipeline orchestrator with generate-verify-fix loop + registry integration
