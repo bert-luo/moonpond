@@ -70,7 +70,7 @@ GAMES_DIR.mkdir(exist_ok=True)
 async def generate(
     req: GenerateRequest,
     background_tasks: BackgroundTasks,
-    pipeline: str = "contract",
+    pipeline: str = "agentic",
 ) -> GenerateResponse:
     """Create a new game generation job and return job_id immediately."""
     job_id = str(uuid.uuid4())
@@ -111,7 +111,7 @@ async def stream(job_id: str):
         return
 
     queue = active_jobs[job_id]
-    deadline = asyncio.get_event_loop().time() + 300
+    deadline = asyncio.get_event_loop().time() + 900
     while True:
         remaining = deadline - asyncio.get_event_loop().time()
         if remaining <= 0:

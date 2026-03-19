@@ -50,7 +50,11 @@ def _build_fix_context(
     sections = []
     for filename, content in flagged_files.items():
         error_list = errors_by_file.get(filename, [])
-        error_text = "\n".join(f"  - {e}" for e in error_list) if error_list else "  (no specific errors listed)"
+        error_text = (
+            "\n".join(f"  - {e}" for e in error_list)
+            if error_list
+            else "  (no specific errors listed)"
+        )
         sections.append(
             f"--- {filename} ---\n"
             f"Current content:\n{content}\n\n"
@@ -110,9 +114,7 @@ class AgenticPipeline:
 
             # Set up intermediate output directory
             dump_dir = (
-                GAMES_DIR / game_dir / "intermediate"
-                if save_intermediate
-                else None
+                GAMES_DIR / game_dir / "intermediate" if save_intermediate else None
             )
             if dump_dir:
                 dump_dir.mkdir(parents=True, exist_ok=True)
@@ -186,9 +188,7 @@ class AgenticPipeline:
                         )
 
                 flagged_contents = {
-                    f: all_files[f]
-                    for f in flagged_filenames
-                    if f in all_files
+                    f: all_files[f] for f in flagged_filenames if f in all_files
                 }
 
                 fix_ctx = _build_fix_context(spec, flagged_contents, errors_by_file)
