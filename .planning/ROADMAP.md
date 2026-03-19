@@ -188,7 +188,7 @@ Plans:
   4. No LLM calls for .tscn generation -- fully deterministic
   5. All scripts use consistent viewport dimensions (no hardcoded screen sizes)
   6. Existing test suite passes; new tests cover TscnBuilder and SceneAssembler
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 06-01-PLAN.md — TscnBuilder utility + SceneAssembler + @onready parser with full test suites
