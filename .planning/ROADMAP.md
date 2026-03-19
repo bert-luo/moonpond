@@ -213,3 +213,22 @@ Plans:
 - [ ] 07-01-PLAN.md — Data models (AgenticGameSpec, VerifierResult), spec generator, tool definitions and dispatch
 - [ ] 07-02-PLAN.md — Multi-turn file generation loop + verifier agent
 - [ ] 07-03-PLAN.md — AgenticPipeline orchestrator with generate-verify-fix loop + registry integration
+
+### Phase 8: Agentic template decoupling
+
+**Goal:** Slim the base_2d template to essentials (export presets, assets, engine cache), let the LLM generate project.godot with autoloads and input maps, surface asset paths in the file generator prompt, and add a Python input map expansion utility — eliminating the GameManager autoload mismatch and input action disconnect in the agentic pipeline
+**Requirements**: TMPL-SLIM, AGENT-PROJGODOT, AGENT-INPUTMAP, AGENT-ASSETS, PIPE-INPUTMAP
+**Depends on:** Phase 7
+**Success Criteria** (what must be TRUE):
+  1. Generated project.godot has correct [autoload] entries matching the LLM's generated singleton scripts
+  2. No naming collision between template and generated files (no duplicate game manager files)
+  3. Input actions referenced in generated .gd code exist in the generated project.godot's [input] section
+  4. [rendering] and [display] sections are always correct (viewport 1152x648, gl_compatibility renderer)
+  5. Pre-built assets (shaders, palettes, particles) are used by the LLM when appropriate
+  6. Existing contract/general/multi_stage pipelines are unaffected
+  7. Verifier no longer flags "GameManager autoload not configured" as a critical error
+**Plans:** 2 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Input map expansion utility, system prompt rewrite with project.godot skeleton and asset paths, template file stripping
+- [ ] 08-02-PLAN.md — Pipeline integration: wire expand_input_map into AgenticPipeline before export
