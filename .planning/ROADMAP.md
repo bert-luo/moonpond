@@ -207,7 +207,7 @@ Plans:
   5. All intermediate state (spec, per-iteration files, verifier results) is persisted in numbered subdirectories
   6. AgenticPipeline.generate() satisfies the GamePipeline Protocol and produces a GameResult via the shared exporter
   7. Configurable context strategy: full_history (default) or stateless mode
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 07-01-PLAN.md — Data models (AgenticGameSpec, VerifierResult), spec generator, tool definitions and dispatch
