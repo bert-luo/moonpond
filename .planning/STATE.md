@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 07-03-PLAN.md
-last_updated: "2026-03-19T15:18:58.683Z"
-last_activity: 2026-03-19 — Completed 07-03-PLAN.md
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-03-19T22:45:47.979Z"
+last_activity: 2026-03-19 — Completed 08-01-PLAN.md
 progress:
-  total_phases: 11
+  total_phases: 12
   completed_phases: 8
-  total_plans: 29
-  completed_plans: 26
-  percent: 100
+  total_plans: 31
+  completed_plans: 27
+  percent: 87
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** Generated games must look and feel intentional — shaders, palettes, and particles applied by design, not bare functional code that happens to run
-**Current focus:** Phase 7 — Agentic Pipeline
+**Current focus:** Phase 8 — Agentic Template Decoupling
 
 ## Current Position
 
-Phase: 7 of 7 (Agentic Pipeline)
-Plan: 3 of 3 in current phase
+Phase: 8 of 8 (Agentic Template Decoupling)
+Plan: 1 of 1 in current phase
 Status: Completed
-Last activity: 2026-03-19 — Completed 07-03-PLAN.md
+Last activity: 2026-03-19 — Completed 08-01-PLAN.md
 
-Progress: [██████████] 100%
+Progress: [█████████░] 87%
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ Progress: [██████████] 100%
 | Phase 07 P01 | 3min | 2 tasks | 5 files |
 | Phase 07 P02 | 4min | 2 tasks | 3 files |
 | Phase 07 P03 | 8min | 2 tasks | 5 files |
+| Phase 08 P01 | 11min | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,9 @@ Recent decisions affecting current work:
 - [Phase 07]: Verifier uses fresh LLM context with no tools — JSON-only response parsed via model_validate
 - [Phase 07]: fix_context parameter added to run_file_generation for targeted fix iterations
 - [Phase 07]: _build_fix_context includes original file content + verifier error descriptions per flagged file
+- [Phase 08]: Hardcoded KEY_MAP dict for Godot physical keycodes -- stable across 4.x, no runtime lookup needed
+- [Phase 08]: Regex section isolation for [input] parsing -- same pattern as wiring_generator.py
+- [Phase 08]: _build_asset_section() generates prompt text from imported constants -- no hardcoded paths in prompt
 
 ### Roadmap Evolution
 
@@ -163,6 +167,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T15:15:57.042Z
-Stopped at: Completed 07-03-PLAN.md
+Last session: 2026-03-19T22:45:47.970Z
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
