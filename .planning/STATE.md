@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05.2-03-PLAN.md
-last_updated: "2026-03-18T10:39:53.025Z"
-last_activity: 2026-03-16 — Completed 05-01-PLAN.md
+stopped_at: Completed 06-01-PLAN.md
+last_updated: "2026-03-19T06:07:09.243Z"
+last_activity: 2026-03-19 — Completed 06-01-PLAN.md
 progress:
-  total_phases: 9
+  total_phases: 10
   completed_phases: 6
-  total_plans: 24
-  completed_plans: 21
-  percent: 81
+  total_plans: 26
+  completed_plans: 22
+  percent: 85
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** Generated games must look and feel intentional — shaders, palettes, and particles applied by design, not bare functional code that happens to run
-**Current focus:** Phase 5 — Pipeline Optimization
+**Current focus:** Phase 6 — Programmatic TSCN Generation and Display Configuration
 
 ## Current Position
 
-Phase: 5 of 5 (Pipeline Optimization)
-Plan: 1 of 5 in current phase
+Phase: 6 of 6 (Programmatic TSCN Generation and Display Configuration)
+Plan: 1 of 2 in current phase
 Status: In Progress
-Last activity: 2026-03-16 — Completed 05-01-PLAN.md
+Last activity: 2026-03-19 — Completed 06-01-PLAN.md
 
-Progress: [████████░░] 81%
+Progress: [█████████░] 85%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [████████░░] 81%
 | Phase 05.2 P02 | 2min | 1 tasks | 2 files |
 | Phase 05.2 P01 | 2min | 2 tasks | 4 files |
 | Phase 05.2 P03 | 2min | 2 tasks | 5 files |
+| Phase 06 P01 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,9 @@ Recent decisions affecting current work:
 - [Phase 05.2]: Frozenset membership check for O(1) dedup of base methods and hardcoded autoloads
 - [Phase 05.2]: Literal['static', 'dynamic'] for spawn_mode with default 'static' -- backward compatible
 - [Phase 05.2]: model_copy(update=...) for filtered contract view in wiring prompt rather than mutating original
+- [Phase 06]: TscnBuilder uses monotonic counter for ext_resource/sub_resource IDs
+- [Phase 06]: Physics bodies auto-get CollisionShape2D with default 64x64 RectangleShape2D
+- [Phase 06]: No [connection] entries in Main.tscn -- signals wired in _ready() per design
 
 ### Roadmap Evolution
 
@@ -131,6 +135,7 @@ Recent decisions affecting current work:
 - Phase 5 added: pipeline optimization
 - Phase 5.1 inserted after Phase 5: Contract Pipeline Context Enrichment — generate game_manager.gd from contract, inject GameManager API + sibling node APIs into node generation prompts
 - Phase 5.2 inserted after Phase 5.1: Fix Pipeline Generation Failure Modes — duplicate method definitions, invalid .tscn ExtResource IDs, signal argument mismatches, duplicate autoloads
+- Phase 6 added: Programmatic TSCN generation and display configuration
 
 ### Pending Todos
 
@@ -143,6 +148,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-18T10:36:28.563Z
-Stopped at: Completed 05.2-03-PLAN.md
+Last session: 2026-03-19T06:07:09.240Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
