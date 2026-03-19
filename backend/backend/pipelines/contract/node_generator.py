@@ -150,9 +150,12 @@ def _build_node_system_prompt(node: NodeContract, contract: GameContract) -> str
         f"Respond with ONLY files for: {node.script_path}",
     ]
 
-    if node.scene_path:
-        parts.append(f"Also generate: {node.scene_path}")
-
+    parts.append("")
+    parts.append(
+        "The game viewport design resolution is 1152x648 pixels.\n"
+        "Use get_viewport().get_visible_rect().size to read dimensions at runtime\n"
+        "rather than hardcoding pixel values."
+    )
     parts.append("")
     parts.append(
         "Use Godot 4 syntax exclusively. "

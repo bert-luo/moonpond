@@ -17,7 +17,11 @@ from backend.pipelines.contract.contract_generator import run_contract_generator
 from backend.pipelines.contract.game_manager_generator import generate_game_manager_script_async
 from backend.pipelines.contract.node_generator import run_parallel_node_generation
 from backend.pipelines.contract.spec_expander import run_spec_expander
-from backend.pipelines.contract.wiring_generator import run_wiring_generator
+from backend.pipelines.contract.scene_assembler import SceneAssembler
+from backend.pipelines.contract.wiring_generator import (
+    _patch_project_godot_autoloads,
+    TEMPLATE_DIR,
+)
 from backend.pipelines.exporter import GAMES_DIR, run_exporter
 
 
@@ -46,7 +50,7 @@ class ContractPipeline:
       1. Spec Expander     -- raw prompt -> RichGameSpec
       2. Contract Generator -- RichGameSpec -> GameContract
       3. Node Generator     -- GameContract -> per-node scripts (parallel waves)
-      4. Wiring Generator   -- GameContract + scripts -> Main.tscn + project.godot
+      4. Scene Assembler    -- GameContract + scripts -> Main.tscn + project.godot (deterministic)
       5. Exporter           -- assembled project dir -> WASM
     """
 
@@ -129,18 +133,32 @@ class ContractPipeline:
                 for name, content in node_files.items():
                     (node_dir / name).write_text(content)
 
-            # Stage 4: Wiring Generator — contract + scripts -> Main.tscn + project.godot
-            wiring_files = await run_wiring_generator(
-                self._client, contract, node_files, emit
+            # Stage 4: Scene Assembler — contract + scripts -> Main.tscn (deterministic)
+            await emit(
+                ProgressEvent(
+                    type="stage_start",
+                    message="Assembling scene files...",
+                )
             )
-            if dump_dir:
-                wiring_dir = dump_dir / "4_wiring_files"
-                wiring_dir.mkdir(exist_ok=True)
-                for name, content in wiring_files.items():
-                    (wiring_dir / name).write_text(content)
+            assembler = SceneAssembler()
+            scene_files = assembler.assemble(contract, node_files)
 
-            # Merge all generated files (gm_files first so node/wiring can override if needed)
-            all_files = {**gm_files, **node_files, **wiring_files}
+            # Patch project.godot for autoloads if needed
+            if contract.autoloads:
+                template_content = (TEMPLATE_DIR / "project.godot").read_text()
+                patched = _patch_project_godot_autoloads(
+                    template_content, contract.autoloads
+                )
+                scene_files["project.godot"] = patched
+
+            if dump_dir:
+                scene_dir = dump_dir / "4_scene_files"
+                scene_dir.mkdir(exist_ok=True)
+                for name, content in scene_files.items():
+                    (scene_dir / name).write_text(content)
+
+            # Merge all generated files (gm_files first so node/scene can override if needed)
+            all_files = {**gm_files, **node_files, **scene_files}
 
             # Stage 5: Exporter — assembled project -> WASM
             result = await run_exporter(
