@@ -190,7 +190,7 @@ async def run_file_generation(
     *,
     context_strategy: str = "full_history",
     fix_context: str | None = None,
-) -> dict[str, str]:
+) -> tuple[dict[str, str], list[dict]]:
     """Run the multi-turn file generation agent loop.
 
     The LLM calls write_file/read_file tools to build up the game project
@@ -206,7 +206,7 @@ async def run_file_generation(
             "stateless" resets each turn with a fresh prompt.
 
     Returns:
-        Dict mapping filename -> content for all generated files.
+        Tuple of (generated_files dict, conversation messages list).
     """
     generated_files: dict[str, str] = {}
 
@@ -265,4 +265,4 @@ async def run_file_generation(
         # Append user turn with tool results
         messages.append({"role": "user", "content": tool_results})
 
-    return generated_files
+    return generated_files, messages

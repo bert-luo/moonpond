@@ -24,6 +24,31 @@ MAX_ITERATIONS = 3
 """Maximum generate-verify-fix iterations before proceeding to export."""
 
 
+def _serialize_messages(messages: list[dict]) -> list[dict]:
+    """Convert a conversation message list to JSON-serializable form.
+
+    Assistant message content blocks are Anthropic SDK objects (TextBlock,
+    ToolUseBlock) which aren't plain dicts.  This recursively converts them.
+    """
+    serialized = []
+    for msg in messages:
+        content = msg["content"]
+        if isinstance(content, list):
+            # Could be SDK content blocks (assistant) or tool_result dicts (user)
+            blocks = []
+            for item in content:
+                if isinstance(item, dict):
+                    blocks.append(item)
+                elif hasattr(item, "model_dump"):
+                    blocks.append(item.model_dump())
+                else:
+                    blocks.append({"type": "text", "text": str(item)})
+            serialized.append({"role": msg["role"], "content": blocks})
+        else:
+            serialized.append({"role": msg["role"], "content": content})
+    return serialized
+
+
 def _slugify(title: str, max_len: int = 40) -> str:
     """Convert a game title to a filesystem-safe slug."""
     slug = title.lower().strip()
@@ -139,7 +164,7 @@ class AgenticPipeline:
                 )
 
                 # Generate files (first iteration: full generation; fix iterations: targeted)
-                new_files = await run_file_generation(
+                new_files, conversation = await run_file_generation(
                     self._client,
                     spec,
                     project_dir,
@@ -158,6 +183,10 @@ class AgenticPipeline:
                     files_dir.mkdir(parents=True, exist_ok=True)
                     for fname, content in all_files.items():
                         (files_dir / fname).write_text(content)
+                    # Save the full agent conversation thread
+                    (iter_dir / "conversation.json").write_text(
+                        json.dumps(_serialize_messages(conversation), indent=2)
+                    )
 
                 # Verify
                 verifier_result = await run_verifier(
