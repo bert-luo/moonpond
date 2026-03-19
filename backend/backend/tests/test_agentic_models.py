@@ -210,3 +210,104 @@ class TestRunSpecGenerator:
         assert call_kwargs["max_tokens"] == 4096
         assert "user" in str(call_kwargs["messages"][0]["role"])
         assert "asteroid" in call_kwargs["messages"][0]["content"].lower()
+
+
+# ---------------------------------------------------------------------------
+# Tool dispatch tests
+# ---------------------------------------------------------------------------
+
+from pathlib import Path
+
+from backend.pipelines.agentic.file_generator import (
+    WRITE_FILE_TOOL,
+    READ_FILE_TOOL,
+    AGENT_TOOLS,
+    _dispatch_tool,
+    GENERATOR_MODEL,
+    MAX_TURNS_PER_ITERATION,
+)
+
+
+class TestToolDefinitions:
+    def test_write_file_tool_schema(self):
+        assert WRITE_FILE_TOOL["name"] == "write_file"
+        schema = WRITE_FILE_TOOL["input_schema"]
+        assert "filename" in schema["properties"]
+        assert "content" in schema["properties"]
+        assert "filename" in schema["required"]
+        assert "content" in schema["required"]
+
+    def test_read_file_tool_schema(self):
+        assert READ_FILE_TOOL["name"] == "read_file"
+        schema = READ_FILE_TOOL["input_schema"]
+        assert "filename" in schema["properties"]
+        assert "filename" in schema["required"]
+
+    def test_agent_tools_list(self):
+        assert len(AGENT_TOOLS) == 2
+        names = {t["name"] for t in AGENT_TOOLS}
+        assert names == {"write_file", "read_file"}
+
+    def test_constants(self):
+        assert GENERATOR_MODEL == "claude-sonnet-4-6"
+        assert MAX_TURNS_PER_ITERATION == 30
+
+
+class TestDispatchTool:
+    @pytest.mark.anyio
+    async def test_write_file_creates_file_and_updates_dict(self, tmp_path: Path):
+        generated_files: dict[str, str] = {}
+        result = await _dispatch_tool(
+            "write_file",
+            {"filename": "player.gd", "content": "extends Node2D"},
+            tmp_path,
+            generated_files,
+        )
+        assert "OK" in result
+        assert "player.gd" in result
+        assert (tmp_path / "player.gd").read_text() == "extends Node2D"
+        assert generated_files["player.gd"] == "extends Node2D"
+
+    @pytest.mark.anyio
+    async def test_read_file_from_generated_files_dict(self, tmp_path: Path):
+        generated_files = {"player.gd": "extends Node2D"}
+        result = await _dispatch_tool(
+            "read_file",
+            {"filename": "player.gd"},
+            tmp_path,
+            generated_files,
+        )
+        assert result == "extends Node2D"
+
+    @pytest.mark.anyio
+    async def test_read_file_missing_returns_error(self, tmp_path: Path):
+        result = await _dispatch_tool(
+            "read_file",
+            {"filename": "missing.gd"},
+            tmp_path,
+            {},
+        )
+        assert "ERROR" in result
+        assert "missing.gd" in result
+
+    @pytest.mark.anyio
+    async def test_read_file_falls_back_to_disk(self, tmp_path: Path):
+        (tmp_path / "on_disk.gd").write_text("extends Sprite2D")
+        result = await _dispatch_tool(
+            "read_file",
+            {"filename": "on_disk.gd"},
+            tmp_path,
+            {},
+        )
+        assert result == "extends Sprite2D"
+
+    @pytest.mark.anyio
+    async def test_unknown_tool_returns_error(self, tmp_path: Path):
+        result = await _dispatch_tool(
+            "unknown_tool",
+            {},
+            tmp_path,
+            {},
+        )
+        assert "ERROR" in result
+        assert "unknown_tool" in result
