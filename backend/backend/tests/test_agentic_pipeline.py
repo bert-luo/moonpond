@@ -274,3 +274,173 @@ class TestBuildVerifierPrompt:
         assert "extends CharacterBody2D" in prompt
         assert "gd_scene" in prompt
         assert "Asteroid Dodger" in prompt
+
+
+# ---------------------------------------------------------------------------
+# AgenticPipeline orchestrator tests
+# ---------------------------------------------------------------------------
+
+from backend.pipelines.agentic.models import VerifierError, VerifierResult
+
+
+def _make_verifier_result(critical_files: list[str] | None = None) -> VerifierResult:
+    """Create a VerifierResult, optionally with critical errors on given files."""
+    if critical_files is None:
+        return VerifierResult(errors=[], summary="All good")
+    errors = [
+        VerifierError(
+            file_path=f,
+            error_type="syntax",
+            description=f"Error in {f}",
+            severity="critical",
+        )
+        for f in critical_files
+    ]
+    return VerifierResult(errors=errors, summary=f"{len(errors)} critical errors")
+
+
+class TestAgenticPipelineGenerate:
+    @pytest.mark.anyio
+    async def test_generate_full_flow(self, tmp_path: Path):
+        """Pipeline calls spec -> generate -> verify (pass) -> export in order."""
+        from unittest.mock import patch, call
+
+        from backend.pipelines.agentic.pipeline import AgenticPipeline
+        from backend.pipelines.exporter import GAMES_DIR
+
+        pipeline = AgenticPipeline()
+        emit = AsyncMock()
+
+        mock_spec = SAMPLE_SPEC
+        mock_files = {"player.gd": "extends Node2D", "Main.tscn": "[gd_scene]"}
+        mock_verifier = _make_verifier_result()  # no errors
+        mock_game_result = MagicMock()
+        mock_game_result.job_id = "test-game"
+        mock_game_result.wasm_path = "/games/test/export/index.html"
+        mock_game_result.controls = []
+
+        with (
+            patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=mock_spec) as mock_spec_gen,
+            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=mock_files) as mock_file_gen,
+            patch("backend.pipelines.agentic.pipeline.run_verifier", new_callable=AsyncMock, return_value=mock_verifier) as mock_verify,
+            patch("backend.pipelines.agentic.pipeline.run_exporter", new_callable=AsyncMock, return_value=mock_game_result) as mock_export,
+            patch("backend.pipelines.agentic.pipeline.GAMES_DIR", tmp_path),
+        ):
+            result = await pipeline.generate("make a game", "job-1", emit)
+
+        assert result is mock_game_result
+        mock_spec_gen.assert_awaited_once()
+        mock_file_gen.assert_awaited_once()
+        mock_verify.assert_awaited_once()
+        mock_export.assert_awaited_once()
+
+    @pytest.mark.anyio
+    async def test_iteration_dirs(self, tmp_path: Path):
+        """Intermediate dirs created per iteration when save_intermediate=True."""
+        from unittest.mock import patch
+
+        from backend.pipelines.agentic.pipeline import AgenticPipeline
+
+        pipeline = AgenticPipeline()
+        emit = AsyncMock()
+
+        mock_files = {"player.gd": "extends Node2D"}
+        mock_verifier = _make_verifier_result()
+        mock_game_result = MagicMock()
+        mock_game_result.job_id = "test"
+        mock_game_result.wasm_path = "/games/test/export/index.html"
+        mock_game_result.controls = []
+
+        with (
+            patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=SAMPLE_SPEC),
+            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=mock_files),
+            patch("backend.pipelines.agentic.pipeline.run_verifier", new_callable=AsyncMock, return_value=mock_verifier),
+            patch("backend.pipelines.agentic.pipeline.run_exporter", new_callable=AsyncMock, return_value=mock_game_result),
+            patch("backend.pipelines.agentic.pipeline.GAMES_DIR", tmp_path),
+        ):
+            await pipeline.generate("make a game", "job-1", emit, save_intermediate=True)
+
+        # Find the game directory (slug + timestamp)
+        game_dirs = [d for d in tmp_path.iterdir() if d.is_dir()]
+        assert len(game_dirs) == 1
+        intermediate = game_dirs[0] / "intermediate"
+        assert intermediate.exists()
+        assert (intermediate / "1_agentic_spec.json").exists()
+        assert (intermediate / "iteration_1" / "files").exists()
+        assert (intermediate / "iteration_1" / "verifier.json").exists()
+
+    @pytest.mark.anyio
+    async def test_max_iterations_exit(self, tmp_path: Path):
+        """Loop runs exactly MAX_ITERATIONS times when verifier always returns critical errors."""
+        from unittest.mock import patch
+
+        from backend.pipelines.agentic.pipeline import AgenticPipeline, MAX_ITERATIONS
+
+        pipeline = AgenticPipeline()
+        emit = AsyncMock()
+
+        mock_files = {"player.gd": "extends Node2D"}
+        mock_verifier_bad = _make_verifier_result(["player.gd"])
+        mock_game_result = MagicMock()
+        mock_game_result.job_id = "test"
+        mock_game_result.wasm_path = "/games/test/export/index.html"
+        mock_game_result.controls = []
+
+        with (
+            patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=SAMPLE_SPEC),
+            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=mock_files) as mock_file_gen,
+            patch("backend.pipelines.agentic.pipeline.run_verifier", new_callable=AsyncMock, return_value=mock_verifier_bad) as mock_verify,
+            patch("backend.pipelines.agentic.pipeline.run_exporter", new_callable=AsyncMock, return_value=mock_game_result),
+            patch("backend.pipelines.agentic.pipeline.GAMES_DIR", tmp_path),
+        ):
+            result = await pipeline.generate("make a game", "job-1", emit)
+
+        # Verifier called MAX_ITERATIONS times
+        assert mock_verify.await_count == MAX_ITERATIONS
+        # File generation called MAX_ITERATIONS times (first + fixes)
+        assert mock_file_gen.await_count == MAX_ITERATIONS
+        # Still proceeds to export
+        assert result is mock_game_result
+
+    @pytest.mark.anyio
+    async def test_targeted_fix(self, tmp_path: Path):
+        """Second iteration passes fix context for only the flagged file."""
+        from unittest.mock import patch
+
+        from backend.pipelines.agentic.pipeline import AgenticPipeline
+
+        pipeline = AgenticPipeline()
+        emit = AsyncMock()
+
+        # First iteration: verifier flags player.gd
+        mock_files_1 = {"player.gd": "extends Node2D\n# broken", "Main.tscn": "[gd_scene]"}
+        mock_files_2 = {"player.gd": "extends Node2D\n# fixed"}
+        mock_verifier_bad = _make_verifier_result(["player.gd"])
+        mock_verifier_good = _make_verifier_result()  # no errors
+        mock_game_result = MagicMock()
+        mock_game_result.job_id = "test"
+        mock_game_result.wasm_path = "/games/test/export/index.html"
+        mock_game_result.controls = []
+
+        file_gen_calls = []
+
+        async def mock_file_gen(client, spec, game_dir, emit_fn, *, context_strategy="full_history", fix_context=None):
+            file_gen_calls.append({"fix_context": fix_context})
+            if fix_context is None:
+                return mock_files_1
+            return mock_files_2
+
+        with (
+            patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=SAMPLE_SPEC),
+            patch("backend.pipelines.agentic.pipeline.run_file_generation", side_effect=mock_file_gen),
+            patch("backend.pipelines.agentic.pipeline.run_verifier", new_callable=AsyncMock, side_effect=[mock_verifier_bad, mock_verifier_good]),
+            patch("backend.pipelines.agentic.pipeline.run_exporter", new_callable=AsyncMock, return_value=mock_game_result),
+            patch("backend.pipelines.agentic.pipeline.GAMES_DIR", tmp_path),
+        ):
+            await pipeline.generate("make a game", "job-1", emit)
+
+        # First call: no fix_context
+        assert file_gen_calls[0]["fix_context"] is None
+        # Second call: fix_context includes player.gd
+        assert file_gen_calls[1]["fix_context"] is not None
+        assert "player.gd" in file_gen_calls[1]["fix_context"]
