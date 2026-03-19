@@ -82,10 +82,10 @@ class TestRunFileGeneration:
         client.messages.create = AsyncMock(side_effect=[resp1, resp2])
         emit = AsyncMock()
 
-        result = await run_file_generation(client, SAMPLE_SPEC, tmp_path, emit)
+        files, conversation = await run_file_generation(client, SAMPLE_SPEC, tmp_path, emit)
 
-        assert "player.gd" in result
-        assert result["player.gd"] == "extends Node2D"
+        assert "player.gd" in files
+        assert files["player.gd"] == "extends Node2D"
 
         # Verify LLM was called twice
         assert client.messages.create.call_count == 2
@@ -114,7 +114,7 @@ class TestRunFileGeneration:
         client.messages.create = AsyncMock(side_effect=make_tool_response)
         emit = AsyncMock()
 
-        result = await run_file_generation(client, SAMPLE_SPEC, tmp_path, emit)
+        files, conversation = await run_file_generation(client, SAMPLE_SPEC, tmp_path, emit)
 
         # Should have stopped at max turns
         assert client.messages.create.call_count == MAX_TURNS_PER_ITERATION
@@ -137,7 +137,7 @@ class TestRunFileGeneration:
         client.messages.create = AsyncMock(side_effect=[resp1, resp2])
         emit = AsyncMock()
 
-        await run_file_generation(client, SAMPLE_SPEC, tmp_path, emit)
+        files, conversation = await run_file_generation(client, SAMPLE_SPEC, tmp_path, emit)
 
         # Find progress events that mention the filename
         progress_events = [
@@ -164,7 +164,7 @@ class TestRunFileGeneration:
         client.messages.create = AsyncMock(side_effect=[resp1, resp2])
         emit = AsyncMock()
 
-        await run_file_generation(client, SAMPLE_SPEC, tmp_path, emit, context_strategy="stateless")
+        files, conversation = await run_file_generation(client, SAMPLE_SPEC, tmp_path, emit, context_strategy="stateless")
 
         # In stateless mode, second call's first message should be a fresh stateless prompt
         # (not the accumulated history from the first call).
@@ -322,6 +322,7 @@ class TestAgenticPipelineGenerate:
 
         mock_spec = SAMPLE_SPEC
         mock_files = {"player.gd": "extends Node2D", "Main.tscn": "[gd_scene]"}
+        mock_conversation = [{"role": "user", "content": "test"}]
         mock_verifier = _make_verifier_result()  # no errors
         mock_game_result = MagicMock()
         mock_game_result.job_id = "test-game"
@@ -330,7 +331,7 @@ class TestAgenticPipelineGenerate:
 
         with (
             patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=mock_spec) as mock_spec_gen,
-            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=mock_files) as mock_file_gen,
+            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=(mock_files, mock_conversation)) as mock_file_gen,
             patch("backend.pipelines.agentic.pipeline.run_verifier", new_callable=AsyncMock, return_value=mock_verifier) as mock_verify,
             patch("backend.pipelines.agentic.pipeline.run_exporter", new_callable=AsyncMock, return_value=mock_game_result) as mock_export,
             patch("backend.pipelines.agentic.pipeline.GAMES_DIR", tmp_path),
@@ -354,6 +355,7 @@ class TestAgenticPipelineGenerate:
         emit = AsyncMock()
 
         mock_files = {"player.gd": "extends Node2D"}
+        mock_conversation = [{"role": "user", "content": "test"}]
         mock_verifier = _make_verifier_result()
         mock_game_result = MagicMock()
         mock_game_result.job_id = "test"
@@ -362,7 +364,7 @@ class TestAgenticPipelineGenerate:
 
         with (
             patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=SAMPLE_SPEC),
-            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=mock_files),
+            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=(mock_files, mock_conversation)),
             patch("backend.pipelines.agentic.pipeline.run_verifier", new_callable=AsyncMock, return_value=mock_verifier),
             patch("backend.pipelines.agentic.pipeline.run_exporter", new_callable=AsyncMock, return_value=mock_game_result),
             patch("backend.pipelines.agentic.pipeline.GAMES_DIR", tmp_path),
@@ -389,6 +391,7 @@ class TestAgenticPipelineGenerate:
         emit = AsyncMock()
 
         mock_files = {"player.gd": "extends Node2D"}
+        mock_conversation = [{"role": "user", "content": "test"}]
         mock_verifier_bad = _make_verifier_result(["player.gd"])
         mock_game_result = MagicMock()
         mock_game_result.job_id = "test"
@@ -397,7 +400,7 @@ class TestAgenticPipelineGenerate:
 
         with (
             patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=SAMPLE_SPEC),
-            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=mock_files) as mock_file_gen,
+            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=(mock_files, mock_conversation)) as mock_file_gen,
             patch("backend.pipelines.agentic.pipeline.run_verifier", new_callable=AsyncMock, return_value=mock_verifier_bad) as mock_verify,
             patch("backend.pipelines.agentic.pipeline.run_exporter", new_callable=AsyncMock, return_value=mock_game_result),
             patch("backend.pipelines.agentic.pipeline.GAMES_DIR", tmp_path),
@@ -435,9 +438,10 @@ class TestAgenticPipelineGenerate:
 
         async def mock_file_gen(client, spec, game_dir, emit_fn, *, context_strategy="full_history", fix_context=None):
             file_gen_calls.append({"fix_context": fix_context})
+            conversation = [{"role": "user", "content": "test"}]
             if fix_context is None:
-                return mock_files_1
-            return mock_files_2
+                return mock_files_1, conversation
+            return mock_files_2, conversation
 
         with (
             patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=SAMPLE_SPEC),
@@ -453,3 +457,89 @@ class TestAgenticPipelineGenerate:
         # Second call: fix_context includes player.gd
         assert file_gen_calls[1]["fix_context"] is not None
         assert "player.gd" in file_gen_calls[1]["fix_context"]
+
+    @pytest.mark.anyio
+    async def test_expand_input_map_called_when_project_godot_present(self, tmp_path: Path):
+        """When project.godot is in generated files, expand_input_map is called before export."""
+        from unittest.mock import patch
+
+        from backend.pipelines.agentic.pipeline import AgenticPipeline
+
+        pipeline = AgenticPipeline()
+        emit = AsyncMock()
+
+        # project.godot with simplified input format
+        project_godot_content = (
+            "[rendering]\n\n"
+            "[display]\n\n"
+            "[input]\n"
+            "move_left=arrow_left\n"
+            "move_right=arrow_right\n"
+        )
+        mock_files = {
+            "player.gd": "extends Node2D",
+            "project.godot": project_godot_content,
+        }
+        mock_conversation = [{"role": "user", "content": "test"}]
+        mock_verifier = _make_verifier_result()  # no errors
+        mock_game_result = MagicMock()
+        mock_game_result.job_id = "test"
+        mock_game_result.wasm_path = "/games/test/export/index.html"
+        mock_game_result.controls = []
+
+        captured_export_files = {}
+
+        async def capture_exporter(game_dir, files, controls, emit_fn):
+            captured_export_files.update(files)
+            return mock_game_result
+
+        with (
+            patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=SAMPLE_SPEC),
+            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=(mock_files, mock_conversation)),
+            patch("backend.pipelines.agentic.pipeline.run_verifier", new_callable=AsyncMock, return_value=mock_verifier),
+            patch("backend.pipelines.agentic.pipeline.run_exporter", side_effect=capture_exporter),
+            patch("backend.pipelines.agentic.pipeline.GAMES_DIR", tmp_path),
+        ):
+            await pipeline.generate("make a game", "job-1", emit)
+
+        # The project.godot passed to exporter should contain expanded Object() format
+        assert "project.godot" in captured_export_files
+        expanded = captured_export_files["project.godot"]
+        assert "Object(InputEventKey" in expanded
+        # Should NOT contain simplified format
+        assert "move_left=arrow_left" not in expanded
+        assert "move_right=arrow_right" not in expanded
+
+    @pytest.mark.anyio
+    async def test_pipeline_completes_without_project_godot(self, tmp_path: Path):
+        """When project.godot is NOT in generated files, pipeline completes without error."""
+        from unittest.mock import patch
+
+        from backend.pipelines.agentic.pipeline import AgenticPipeline
+
+        pipeline = AgenticPipeline()
+        emit = AsyncMock()
+
+        # No project.godot in generated files
+        mock_files = {"player.gd": "extends Node2D", "Main.tscn": "[gd_scene]"}
+        mock_conversation = [{"role": "user", "content": "test"}]
+        mock_verifier = _make_verifier_result()
+        mock_game_result = MagicMock()
+        mock_game_result.job_id = "test"
+        mock_game_result.wasm_path = "/games/test/export/index.html"
+        mock_game_result.controls = []
+
+        with (
+            patch("backend.pipelines.agentic.pipeline.run_spec_generator", new_callable=AsyncMock, return_value=SAMPLE_SPEC),
+            patch("backend.pipelines.agentic.pipeline.run_file_generation", new_callable=AsyncMock, return_value=(mock_files, mock_conversation)),
+            patch("backend.pipelines.agentic.pipeline.run_verifier", new_callable=AsyncMock, return_value=mock_verifier),
+            patch("backend.pipelines.agentic.pipeline.run_exporter", new_callable=AsyncMock, return_value=mock_game_result),
+            patch("backend.pipelines.agentic.pipeline.GAMES_DIR", tmp_path),
+            patch("backend.pipelines.agentic.pipeline.expand_input_map") as mock_expand,
+        ):
+            result = await pipeline.generate("make a game", "job-1", emit)
+
+        # Pipeline completes successfully
+        assert result is mock_game_result
+        # expand_input_map should NOT have been called
+        mock_expand.assert_not_called()
