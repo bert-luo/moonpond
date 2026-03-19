@@ -175,3 +175,102 @@ class TestRunFileGeneration:
         assert messages[0]["role"] == "user"
         assert "Files already generated" in messages[0]["content"]
         assert "a.gd" in messages[0]["content"]
+
+
+# ---------------------------------------------------------------------------
+# Verifier tests
+# ---------------------------------------------------------------------------
+
+import json
+
+
+class TestRunVerifier:
+    @pytest.mark.anyio
+    async def test_verifier_zero_errors(self):
+        """Mocked LLM returning zero errors produces VerifierResult with empty list."""
+        from backend.pipelines.agentic.verifier import run_verifier
+
+        response_json = {"errors": [], "summary": "All good"}
+        client = AsyncMock()
+        mock_resp = _make_response([_make_text_block(json.dumps(response_json))])
+        client.messages.create = AsyncMock(return_value=mock_resp)
+        emit = AsyncMock()
+
+        result = await run_verifier(
+            client, SAMPLE_SPEC, {"player.gd": "extends Node2D"}, emit
+        )
+
+        assert result.has_critical_errors is False
+        assert len(result.errors) == 0
+        assert result.summary == "All good"
+
+    @pytest.mark.anyio
+    async def test_verifier_with_errors(self):
+        """Mocked LLM returning errors produces VerifierResult with populated errors."""
+        from backend.pipelines.agentic.verifier import run_verifier
+
+        response_json = {
+            "errors": [
+                {
+                    "file_path": "player.gd",
+                    "error_type": "syntax",
+                    "description": "Missing colon on line 5",
+                    "severity": "critical",
+                },
+                {
+                    "file_path": "enemy.gd",
+                    "error_type": "reference",
+                    "description": "Preload path not found",
+                    "severity": "warning",
+                },
+            ],
+            "summary": "2 issues found",
+        }
+        client = AsyncMock()
+        mock_resp = _make_response([_make_text_block(json.dumps(response_json))])
+        client.messages.create = AsyncMock(return_value=mock_resp)
+        emit = AsyncMock()
+
+        result = await run_verifier(
+            client, SAMPLE_SPEC, {"player.gd": "extends Node2D", "enemy.gd": "extends Area2D"}, emit
+        )
+
+        assert result.has_critical_errors is True
+        assert len(result.errors) == 2
+        assert result.errors[0].file_path == "player.gd"
+        assert result.errors[1].error_type == "reference"
+
+    @pytest.mark.anyio
+    async def test_verifier_emits_stage_start(self):
+        """Verifier emits a stage_start ProgressEvent."""
+        from backend.pipelines.agentic.verifier import run_verifier
+
+        response_json = {"errors": [], "summary": "Clean"}
+        client = AsyncMock()
+        mock_resp = _make_response([_make_text_block(json.dumps(response_json))])
+        client.messages.create = AsyncMock(return_value=mock_resp)
+        emit = AsyncMock()
+
+        await run_verifier(client, SAMPLE_SPEC, {"a.gd": "x"}, emit)
+
+        first_event: ProgressEvent = emit.call_args_list[0][0][0]
+        assert first_event.type == "stage_start"
+        assert "erif" in first_event.message.lower()  # "Verifying" or "Verif..."
+
+
+class TestBuildVerifierPrompt:
+    def test_prompt_includes_files(self):
+        """Verifier prompt includes all filenames and their contents."""
+        from backend.pipelines.agentic.verifier import _build_verifier_prompt
+
+        files = {
+            "player.gd": "extends CharacterBody2D\nfunc _ready():\n\tpass",
+            "Main.tscn": '[gd_scene load_steps=2]\n[node name="Main"]',
+        }
+        prompt = _build_verifier_prompt(SAMPLE_SPEC, files)
+
+        assert "player.gd" in prompt
+        assert "Main.tscn" in prompt
+        assert "extends CharacterBody2D" in prompt
+        assert "gd_scene" in prompt
+        assert "Asteroid Dodger" in prompt
