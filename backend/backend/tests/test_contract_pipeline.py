@@ -83,22 +83,16 @@ _ENEMY_FILES_JSON = json.dumps(
     }
 )
 
-_MAIN_TSCN = (
-    '[gd_scene load_steps=3 format=3]\n'
-    '[ext_resource type="Script" path="res://player.gd" id="1"]\n'
-    '[ext_resource type="Script" path="res://enemy.gd" id="2"]\n'
-    '[node name="Main" type="Node2D"]\n'
-    '[node name="Player" type="CharacterBody2D" parent="."]\n'
-    'script = ExtResource("1")\n'
-    '[node name="Enemy" type="Area2D" parent="."]\n'
-    'script = ExtResource("2")\n'
-)
-
-
 def _mock_response(text: str):
-    """Create a mock Anthropic response with given text content."""
+    """Create a mock Anthropic response with given text content.
+
+    Sets type="text" on content blocks so that contract_generator's
+    block.type == "text" filter works correctly with thinking mode.
+    """
     mock = MagicMock()
-    mock.content = [MagicMock(text=text)]
+    block = MagicMock(text=text)
+    block.type = "text"
+    mock.content = [block]
     return mock
 
 
@@ -137,14 +131,13 @@ async def test_contract_pipeline_full_flow(
     # 2. contract_generator
     # 3. node_generator — player.gd (wave 1, all nodes at depth 0)
     # 4. node_generator — enemy.gd (wave 1, parallel with player)
-    # 5. wiring_generator — Main.tscn
+    # (No wiring LLM call — SceneAssembler is deterministic)
     mock_client.messages.create = AsyncMock(
         side_effect=[
             _mock_response(_RICH_GAME_SPEC_JSON),
             _mock_response(_GAME_CONTRACT_JSON),
             _mock_response(_NODE_FILES_JSON),
             _mock_response(_ENEMY_FILES_JSON),
-            _mock_response(_MAIN_TSCN),
         ]
     )
 
@@ -225,7 +218,6 @@ async def test_contract_pipeline_saves_intermediates(
             _mock_response(_GAME_CONTRACT_JSON),
             _mock_response(_NODE_FILES_JSON),
             _mock_response(_ENEMY_FILES_JSON),
-            _mock_response(_MAIN_TSCN),
         ]
     )
 
@@ -259,7 +251,7 @@ async def test_contract_pipeline_saves_intermediates(
     assert (dump_dir / "1_rich_game_spec.json").exists()
     assert (dump_dir / "2_game_contract.json").exists()
     assert (dump_dir / "3_node_files").is_dir()
-    assert (dump_dir / "4_wiring_files").is_dir()
+    assert (dump_dir / "4_scene_files").is_dir()
     assert (dump_dir / "5_result.json").exists()
 
 
