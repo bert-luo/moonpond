@@ -150,6 +150,7 @@ Recent decisions affecting current work:
 - Phase 5.2 inserted after Phase 5.1: Fix Pipeline Generation Failure Modes — duplicate method definitions, invalid .tscn ExtResource IDs, signal argument mismatches, duplicate autoloads
 - Phase 6 added: Programmatic TSCN generation and display configuration
 - Phase 7 added: Agentic Pipeline — lightweight agent-loop pipeline with spec generation, todo-driven iterative file generation, and verifier agent
+- Phase 8 added: Agentic template decoupling — slim template to essentials, let LLM generate project.godot with autoloads/input maps, surface asset paths in prompt
 
 ### Pending Todos
 
