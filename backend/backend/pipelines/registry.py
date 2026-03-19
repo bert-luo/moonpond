@@ -6,7 +6,10 @@ here (e.g., the stub pipeline added in Plan 02-02).
 
 from __future__ import annotations
 
+from .agentic.pipeline import AgenticPipeline
 from .contract.pipeline import ContractPipeline
+
+# from .general.pipeline import ContractPipeline as
 from .multi_stage.pipeline import MultiStagePipeline
 from .stub.pipeline import StubPipeline
 
@@ -14,6 +17,7 @@ PIPELINES: dict[str, type] = {
     "stub": StubPipeline,
     "multi_stage": MultiStagePipeline,
     "contract": ContractPipeline,
+    "agentic": AgenticPipeline,
 }
 """Map of strategy name -> pipeline class satisfying GamePipeline Protocol."""
 
