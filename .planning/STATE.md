@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-03-19T22:45:47.979Z"
-last_activity: 2026-03-19 — Completed 08-01-PLAN.md
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-03-19T22:59:14Z"
+last_activity: 2026-03-19 — Completed 08-02-PLAN.md
 progress:
   total_phases: 12
   completed_phases: 8
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 8 of 8 (Agentic Template Decoupling)
-Plan: 1 of 1 in current phase
+Plan: 2 of 2 in current phase
 Status: Completed
-Last activity: 2026-03-19 — Completed 08-01-PLAN.md
+Last activity: 2026-03-19 — Completed 08-02-PLAN.md
 
-Progress: [█████████░] 87%
+Progress: [██████████] 90%
 
 ## Performance Metrics
 
@@ -77,6 +77,7 @@ Progress: [█████████░] 87%
 | Phase 07 P02 | 4min | 2 tasks | 3 files |
 | Phase 07 P03 | 8min | 2 tasks | 5 files |
 | Phase 08 P01 | 11min | 2 tasks | 6 files |
+| Phase 08 P02 | 12min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -144,6 +145,7 @@ Recent decisions affecting current work:
 - [Phase 08]: Hardcoded KEY_MAP dict for Godot physical keycodes -- stable across 4.x, no runtime lookup needed
 - [Phase 08]: Regex section isolation for [input] parsing -- same pattern as wiring_generator.py
 - [Phase 08]: _build_asset_section() generates prompt text from imported constants -- no hardcoded paths in prompt
+- [Phase 08]: expand_input_map called after generate-verify-fix loop, before export -- expanded content written to both all_files dict and disk
 
 ### Roadmap Evolution
 
@@ -167,6 +169,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:45:47.970Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-03-19T22:59:14Z
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None
