@@ -8,7 +8,7 @@ from pathlib import Path
 from backend.godot.runner import run_headless_export
 from backend.pipelines.base import EmitFn, GameResult, ProgressEvent
 
-_REPO_ROOT = Path(__file__).parent.parent.parent.parent  # stages -> backend -> backend -> repo root
+_REPO_ROOT = Path(__file__).parent.parent.parent.parent  # pipelines -> backend -> backend -> repo root
 TEMPLATE_DIR = _REPO_ROOT / "godot" / "templates" / "base_2d"
 GAMES_DIR = _REPO_ROOT / "games"
 

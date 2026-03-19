@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from backend.pipelines.base import ProgressEvent
-from backend.stages.contract_models import GameContract, NodeContract
-from backend.stages.node_generator import (
+from backend.pipelines.contract.models import GameContract, NodeContract
+from backend.pipelines.contract.node_generator import (
     _build_node_system_prompt,
     _generate_single_node,
     run_parallel_node_generation,

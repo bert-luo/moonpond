@@ -79,7 +79,7 @@
 | FastAPI API layer | HTTP routing, job_id generation, SSE StreamingResponse wiring | Pipeline registry, static file server |
 | Pipeline Registry | Maps pipeline name → class; resolves which pipeline to instantiate per request | API layer, concrete pipeline implementations |
 | GamePipeline (Protocol) | Defines the interface every pipeline must implement; API is pipeline-agnostic | Consumed by API layer, implemented by pipelines |
-| Stage modules (stages/) | Each stage owns a bounded LLM call with typed input/output; independently testable | Called sequentially by MultiStagePipeline; use LLM client + models/ types |
+| Pipeline stage modules (pipelines/{pipeline_name}/) | Each stage owns a bounded LLM call with typed input/output; independently testable | Called by their owning pipeline; use LLM client + pipeline-local models |
 | Godot headless runner | Subprocess wrapper around `godot --headless --export-release`; captures stdout/stderr; enforces timeout | Called by Exporter stage; reads/writes games/{job_id}/ |
 | Godot templates | Pre-built valid Godot projects (base_2d, base_3d); copied per job as scaffolding | Copied by Exporter (or pipeline init) before stages write GDScript |
 | LLM client(s) | Thin wrappers around Anthropic/OpenAI SDKs | Stage modules |
@@ -108,27 +108,32 @@ moonpond/
     pipelines/
       base.py                      # GamePipeline Protocol, ProgressEvent, GameResult
       registry.py                  # PIPELINES dict: name → class
+      assets.py                    # Shared template asset path constants (shaders, palettes, particles, controls)
+      exporter.py                  # Shared exporter: assembles Godot project + WASM export
       multi_stage/
-        __init__.py                # MultiStagePipeline.generate() — sequential stage runner
-      single_shot/                 # (future)
-      roma/                        # (future)
-    stages/
-      prompt_enhancer.py           # Haiku: vague prompt → EnhancedPrompt model
-      game_designer.py             # Sonnet: EnhancedPrompt → GameDesign model
-      code_generator.py            # Sonnet: GameDesign → {filename: gdscript} dict
-      visual_polisher.py           # Sonnet: code + GameDesign → patched code + asset refs
-      exporter.py                  # Godot runner invocation → GameResult
+        __init__.py
+        pipeline.py                # MultiStagePipeline.generate() — sequential stage runner
+        models.py                  # GameSpec, GameDesign, ControlScheme, VisualStyle, etc.
+        prompt_enhancer.py         # Haiku: vague prompt → GameSpec
+        game_designer.py           # Sonnet: GameSpec → GameDesign
+        code_generator.py          # Sonnet: GameDesign → {filename: gdscript} dict
+        visual_polisher.py         # Sonnet: code + VisualStyle → patched code + asset refs
+      contract/
+        __init__.py
+        pipeline.py                # ContractPipeline.generate() — contract-first parallel pipeline
+        models.py                  # RichGameSpec, NodeContract, GameContract
+        spec_expander.py           # Sonnet: prompt → RichGameSpec
+        contract_generator.py      # Opus: RichGameSpec → GameContract
+        game_manager_generator.py  # Sonnet: GameContract → game_manager.gd
+        node_generator.py          # Sonnet: GameContract → per-node GDScript (parallel waves)
+        wiring_generator.py        # Sonnet: GameContract + scripts → Main.tscn + project.godot
+      stub/
+        pipeline.py                # StubPipeline — minimal proof-of-concept
     godot/
       templates/
         base_2d/                   # Committed valid Godot project (never modified in place)
         base_3d/
       runner.py                    # headless subprocess wrapper
-    models/
-      game_design.py               # GameDesign, ControlScheme, VisualStyle, SceneSpec
-      pipeline_io.py               # EnhancedPrompt, GeneratedCode, GameResult, ProgressEvent
-    llm/
-      anthropic_client.py          # Thin wrapper; structured output helpers
-      openai_client.py             # Optional secondary (image gen, embeddings)
   games/                           # gitignored; runtime per-job output
     {job_id}/
       project/                     # Godot project (template copy + generated GDScript)
@@ -137,8 +142,7 @@ moonpond/
 
 ### Structure Rationale
 
-- **stages/ vs pipelines/:** Stages are reusable building blocks (independently testable, individually swappable to different models). Pipelines are orchestration strategies that compose stages differently. This separation is what enables future `single_shot` and `roma` pipelines to reuse the same stage modules.
-- **models/:** All Pydantic types live here, not in stage files. Stages import types; types don't import stages. Prevents circular imports and makes the data contracts inspectable at a glance.
+- **pipelines/{name}/:** Each pipeline owns its stage modules, models, and orchestration logic in a single directory. Stages are co-located with the pipeline that uses them since stages were not reusable across pipelines in practice. Shared components (exporter, asset constants) live at the pipelines/ root level.
 - **godot/runner.py:** Isolates all subprocess complexity behind one boundary. Stages never call `subprocess` directly — only the runner does. This makes mocking trivial for unit tests.
 - **llm/:** LLM client wrappers separated from stage logic. Stages describe *what* to ask; clients handle *how* to call the API (retry, structured output extraction, token counting). Swapping Sonnet → Opus affects only the client call, not stage logic.
 - **games/ (gitignored):** Runtime output never committed. Each job is ephemeral. The static server reads from here; the Godot runner writes here.
@@ -294,7 +298,7 @@ async def export_project(project_path: Path, job_id: str) -> ExportResult:
 
 **Example:**
 ```python
-# stages/code_generator.py (simplified)
+# pipelines/multi_stage/code_generator.py (simplified)
 async def run_with_correction(design: GameDesign, job_id: str, emit) -> GeneratedCode:
     code = await self._generate(design, emit)
     syntax_errors = await validate_gdscript(code, job_id)  # headless --check pass

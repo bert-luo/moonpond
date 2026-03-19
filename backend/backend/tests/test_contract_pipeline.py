@@ -120,8 +120,8 @@ def test_contract_pipeline_instantiates(mock_anthropic_cls):
 
 
 @pytest.mark.anyio
-@patch("backend.stages.exporter.shutil.copytree")
-@patch("backend.stages.exporter.run_headless_export")
+@patch("backend.pipelines.exporter.shutil.copytree")
+@patch("backend.pipelines.exporter.run_headless_export")
 @patch("backend.pipelines.contract.pipeline.AsyncAnthropic")
 async def test_contract_pipeline_full_flow(
     mock_anthropic_cls, mock_export, mock_copytree, tmp_path
@@ -162,7 +162,7 @@ async def test_contract_pipeline_full_flow(
     mock_copytree.side_effect = fake_copytree
 
     with (
-        patch("backend.stages.exporter.GAMES_DIR", tmp_path),
+        patch("backend.pipelines.exporter.GAMES_DIR", tmp_path),
         patch("backend.pipelines.contract.pipeline.GAMES_DIR", tmp_path),
     ):
         pipeline = ContractPipeline()
@@ -208,8 +208,8 @@ async def test_contract_pipeline_full_flow(
 
 
 @pytest.mark.anyio
-@patch("backend.stages.exporter.shutil.copytree")
-@patch("backend.stages.exporter.run_headless_export")
+@patch("backend.pipelines.exporter.shutil.copytree")
+@patch("backend.pipelines.exporter.run_headless_export")
 @patch("backend.pipelines.contract.pipeline.AsyncAnthropic")
 async def test_contract_pipeline_saves_intermediates(
     mock_anthropic_cls, mock_export, mock_copytree, tmp_path
@@ -242,7 +242,7 @@ async def test_contract_pipeline_saves_intermediates(
     emit = AsyncMock()
 
     with (
-        patch("backend.stages.exporter.GAMES_DIR", tmp_path),
+        patch("backend.pipelines.exporter.GAMES_DIR", tmp_path),
         patch("backend.pipelines.contract.pipeline.GAMES_DIR", tmp_path),
     ):
         pipeline = ContractPipeline()

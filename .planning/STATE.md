@@ -114,6 +114,7 @@ Recent decisions affecting current work:
 - [Phase 05]: Contract Generator system prompt explicitly excludes game_manager.gd from node list
 - [Phase 05]: Reused _slugify locally in ContractPipeline rather than extracting shared util
 - [Phase 05]: fake_copytree test pattern creates destination dir for exporter file write isolation
+- [Refactor]: Dissolved backend/stages/ — stage modules moved into their owning pipeline directories (pipelines/multi_stage/, pipelines/contract/). Shared exporter and asset constants live at pipelines/ root. Stages were not reusable across pipelines in practice.
 - [Phase 05.1]: Hardcoded template base as string constant in generator (no filesystem read)
 - [Phase 05.1]: GameState enum skipped during contract enum generation to prevent duplication
 - [Phase 05.1]: Base palette/state API always included in GameManager API block even when contract fields empty

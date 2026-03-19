@@ -8,7 +8,7 @@ import re
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.base import EmitFn, ProgressEvent
-from backend.stages.models import GameSpec
+from backend.pipelines.multi_stage.models import GameSpec
 
 HAIKU_MODEL = "claude-haiku-4-5"
 

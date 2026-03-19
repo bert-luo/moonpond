@@ -13,7 +13,7 @@ import re
 
 from anthropic import AsyncAnthropic
 
-from backend.stages.contract_models import GameContract
+from backend.pipelines.contract.models import GameContract
 
 logger = logging.getLogger(__name__)
 

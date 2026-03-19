@@ -8,11 +8,11 @@ from datetime import datetime, timezone
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.base import EmitFn, GameResult, ProgressEvent
-from backend.stages.code_generator import run_code_generator
-from backend.stages.exporter import GAMES_DIR, run_exporter
-from backend.stages.game_designer import run_game_designer
-from backend.stages.prompt_enhancer import run_prompt_enhancer
-from backend.stages.visual_polisher import run_visual_polisher
+from backend.pipelines.exporter import GAMES_DIR, run_exporter
+from backend.pipelines.multi_stage.code_generator import run_code_generator
+from backend.pipelines.multi_stage.game_designer import run_game_designer
+from backend.pipelines.multi_stage.prompt_enhancer import run_prompt_enhancer
+from backend.pipelines.multi_stage.visual_polisher import run_visual_polisher
 
 
 def _slugify(title: str, max_len: int = 40) -> str:

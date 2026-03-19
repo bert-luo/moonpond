@@ -14,13 +14,8 @@ import re
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.base import EmitFn, ProgressEvent
-from backend.stages.contract_models import GameContract, NodeContract
-from backend.stages.models import (
-    INPUT_ACTIONS,
-    PARTICLE_PATHS,
-    PALETTE_PATHS,
-    SHADER_PATHS,
-)
+from backend.pipelines.assets import INPUT_ACTIONS, PALETTE_PATHS, PARTICLE_PATHS, SHADER_PATHS
+from backend.pipelines.contract.models import GameContract, NodeContract
 
 logger = logging.getLogger(__name__)
 

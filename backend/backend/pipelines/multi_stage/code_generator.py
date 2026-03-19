@@ -12,19 +12,15 @@ logger = logging.getLogger(__name__)
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.base import EmitFn, ProgressEvent
-from backend.stages.models import (
-    CONTROL_SNIPPET_PATHS,
-    INPUT_ACTIONS,
-    ControlScheme,
-    GameDesign,
-)
+from backend.pipelines.assets import CONTROL_SNIPPET_PATHS, INPUT_ACTIONS
+from backend.pipelines.multi_stage.models import ControlScheme, GameDesign
 
 SONNET_MODEL = "claude-sonnet-4-6"
 OPUS_MODEL = "claude-opus-4-6"
 
 _REPO_ROOT = Path(
     __file__
-).parent.parent.parent.parent  # stages -> backend -> backend -> repo root
+).parent.parent.parent.parent.parent  # multi_stage -> pipelines -> backend -> backend -> repo root
 
 _CODEGEN_SYSTEM_PROMPT = """\
 You are a Godot 4 game programmer. Given a GameDesign JSON specification, generate \

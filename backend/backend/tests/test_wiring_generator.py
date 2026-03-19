@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend.pipelines.base import ProgressEvent
-from backend.stages.contract_models import GameContract, NodeContract
-from backend.stages.wiring_generator import (
+from backend.pipelines.contract.models import GameContract, NodeContract
+from backend.pipelines.contract.wiring_generator import (
     _build_wiring_system_prompt,
     _patch_project_godot_autoloads,
     run_wiring_generator,

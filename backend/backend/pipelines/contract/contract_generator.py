@@ -14,7 +14,7 @@ import logging
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.base import EmitFn, ProgressEvent
-from backend.stages.contract_models import GameContract, RichGameSpec
+from backend.pipelines.contract.models import GameContract, RichGameSpec
 
 logger = logging.getLogger(__name__)
 

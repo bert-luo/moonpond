@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from backend.pipelines.base import ProgressEvent
-from backend.stages.contract_models import RichGameSpec
-from backend.stages.spec_expander import run_spec_expander
+from backend.pipelines.contract.models import RichGameSpec
+from backend.pipelines.contract.spec_expander import run_spec_expander
 
 # ---------------------------------------------------------------------------
 # Fixtures

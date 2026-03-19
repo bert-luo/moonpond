@@ -8,12 +8,8 @@ import re
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.base import EmitFn, ProgressEvent
-from backend.stages.models import (
-    PALETTE_PATHS,
-    PARTICLE_PATHS,
-    SHADER_PATHS,
-    VisualStyle,
-)
+from backend.pipelines.assets import PALETTE_PATHS, PARTICLE_PATHS, SHADER_PATHS
+from backend.pipelines.multi_stage.models import VisualStyle
 
 SONNET_MODEL = "claude-sonnet-4-6"
 

@@ -84,8 +84,8 @@ def _mock_response(text: str):
 
 
 @pytest.mark.anyio
-@patch("backend.stages.exporter.shutil.copytree")
-@patch("backend.stages.exporter.run_headless_export")
+@patch("backend.pipelines.exporter.shutil.copytree")
+@patch("backend.pipelines.exporter.run_headless_export")
 @patch("backend.pipelines.multi_stage.pipeline.AsyncAnthropic")
 async def test_multi_stage_pipeline_full_flow(
     mock_anthropic_cls, mock_export, mock_copytree, tmp_path
@@ -116,7 +116,7 @@ async def test_multi_stage_pipeline_full_flow(
     # Pre-create project dir since copytree is mocked
     (tmp_path / "test-job-1" / "project").mkdir(parents=True)
 
-    with patch("backend.stages.exporter.GAMES_DIR", tmp_path):
+    with patch("backend.pipelines.exporter.GAMES_DIR", tmp_path):
         pipeline = MultiStagePipeline()
         result = await pipeline.generate("Make a robot runner", "test-job-1", emit)
 
@@ -145,8 +145,8 @@ async def test_multi_stage_pipeline_full_flow(
 
 
 @pytest.mark.anyio
-@patch("backend.stages.exporter.shutil.copytree")
-@patch("backend.stages.exporter.run_headless_export")
+@patch("backend.pipelines.exporter.shutil.copytree")
+@patch("backend.pipelines.exporter.run_headless_export")
 @patch("backend.pipelines.multi_stage.pipeline.AsyncAnthropic")
 async def test_multi_stage_pipeline_self_correction_retry(
     mock_anthropic_cls, mock_export, mock_copytree, tmp_path
@@ -176,7 +176,7 @@ async def test_multi_stage_pipeline_self_correction_retry(
     # Pre-create project dir since copytree is mocked
     (tmp_path / "test-job-2" / "project").mkdir(parents=True)
 
-    with patch("backend.stages.exporter.GAMES_DIR", tmp_path):
+    with patch("backend.pipelines.exporter.GAMES_DIR", tmp_path):
         pipeline = MultiStagePipeline()
         result = await pipeline.generate("Make a robot runner", "test-job-2", emit)
 

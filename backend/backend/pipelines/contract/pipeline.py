@@ -13,12 +13,12 @@ from datetime import datetime, timezone
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.base import EmitFn, GameResult, ProgressEvent
-from backend.stages.contract_generator import run_contract_generator
-from backend.stages.exporter import GAMES_DIR, run_exporter
-from backend.stages.game_manager_generator import generate_game_manager_script_async
-from backend.stages.node_generator import run_parallel_node_generation
-from backend.stages.spec_expander import run_spec_expander
-from backend.stages.wiring_generator import run_wiring_generator
+from backend.pipelines.contract.contract_generator import run_contract_generator
+from backend.pipelines.contract.game_manager_generator import generate_game_manager_script_async
+from backend.pipelines.contract.node_generator import run_parallel_node_generation
+from backend.pipelines.contract.spec_expander import run_spec_expander
+from backend.pipelines.contract.wiring_generator import run_wiring_generator
+from backend.pipelines.exporter import GAMES_DIR, run_exporter
 
 
 def _strip_node_tscn(node_files: dict[str, str]) -> dict[str, str]:

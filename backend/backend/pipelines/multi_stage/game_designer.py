@@ -8,7 +8,7 @@ import re
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.base import EmitFn, ProgressEvent
-from backend.stages.models import GameDesign, GameSpec
+from backend.pipelines.multi_stage.models import GameDesign, GameSpec
 
 SONNET_MODEL = "claude-sonnet-4-6"
 

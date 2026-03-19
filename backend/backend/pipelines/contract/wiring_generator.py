@@ -14,7 +14,7 @@ from pathlib import Path
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.base import EmitFn, ProgressEvent
-from backend.stages.contract_models import GameContract
+from backend.pipelines.contract.models import GameContract
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ _HARDCODED_AUTOLOAD_NAMES: frozenset[str] = frozenset({"GameManager"})
 
 _REPO_ROOT = Path(
     __file__
-).parent.parent.parent.parent  # stages -> backend -> backend -> repo root
+).parent.parent.parent.parent.parent  # contract -> pipelines -> backend -> backend -> repo root
 TEMPLATE_DIR = _REPO_ROOT / "godot" / "templates" / "base_2d"
 
 

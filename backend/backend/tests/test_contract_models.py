@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from backend.stages.contract_models import GameContract, NodeContract, RichGameSpec
+from backend.pipelines.contract.models import GameContract, NodeContract, RichGameSpec
 
 
 # ---------------------------------------------------------------------------

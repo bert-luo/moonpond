@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from backend.stages.contract_models import GameContract, NodeContract
-from backend.stages.game_manager_generator import (
+from backend.pipelines.contract.models import GameContract, NodeContract
+from backend.pipelines.contract.game_manager_generator import (
     _assemble_script,
     _extract_method_name,
     generate_game_manager_script,

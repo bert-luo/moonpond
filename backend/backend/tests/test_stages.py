@@ -8,13 +8,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from backend.pipelines.base import GameResult, ProgressEvent
-from backend.stages.code_generator import (
+from backend.pipelines.exporter import run_exporter
+from backend.pipelines.multi_stage.code_generator import (
     _check_gdscript_syntax_patterns,
     run_code_generator,
 )
-from backend.stages.exporter import run_exporter
-from backend.stages.game_designer import run_game_designer
-from backend.stages.models import (
+from backend.pipelines.multi_stage.game_designer import run_game_designer
+from backend.pipelines.multi_stage.models import (
     ControlMapping,
     ControlScheme,
     GameDesign,
@@ -22,8 +22,8 @@ from backend.stages.models import (
     SceneSpec,
     VisualStyle,
 )
-from backend.stages.prompt_enhancer import run_prompt_enhancer
-from backend.stages.visual_polisher import run_visual_polisher
+from backend.pipelines.multi_stage.prompt_enhancer import run_prompt_enhancer
+from backend.pipelines.multi_stage.visual_polisher import run_visual_polisher
 
 
 # ---------------------------------------------------------------------------
@@ -277,8 +277,8 @@ async def test_visual_polisher_emits_stage_start():
 
 
 @pytest.mark.anyio
-@patch("backend.stages.exporter.shutil.copytree")
-@patch("backend.stages.exporter.run_headless_export")
+@patch("backend.pipelines.exporter.shutil.copytree")
+@patch("backend.pipelines.exporter.run_headless_export")
 async def test_exporter_calls_headless_export(mock_export, mock_copytree, tmp_path):
     from backend.godot.runner import RunResult
 
@@ -293,7 +293,7 @@ async def test_exporter_calls_headless_export(mock_export, mock_copytree, tmp_pa
     )
     emit = AsyncMock()
 
-    with patch("backend.stages.exporter.GAMES_DIR", tmp_path):
+    with patch("backend.pipelines.exporter.GAMES_DIR", tmp_path):
         result = await run_exporter(
             "test-job",
             {"main.gd": "extends Node2D"},
@@ -308,8 +308,8 @@ async def test_exporter_calls_headless_export(mock_export, mock_copytree, tmp_pa
 
 
 @pytest.mark.anyio
-@patch("backend.stages.exporter.shutil.copytree")
-@patch("backend.stages.exporter.run_headless_export")
+@patch("backend.pipelines.exporter.shutil.copytree")
+@patch("backend.pipelines.exporter.run_headless_export")
 async def test_exporter_emits_stage_start(mock_export, mock_copytree, tmp_path):
     from backend.godot.runner import RunResult
 
@@ -323,7 +323,7 @@ async def test_exporter_emits_stage_start(mock_export, mock_copytree, tmp_path):
     )
     emit = AsyncMock()
 
-    with patch("backend.stages.exporter.GAMES_DIR", tmp_path):
+    with patch("backend.pipelines.exporter.GAMES_DIR", tmp_path):
         await run_exporter(
             "test-job",
             {"main.gd": "extends Node2D"},
