@@ -189,6 +189,7 @@ async def run_file_generation(
     emit: EmitFn,
     *,
     context_strategy: str = "full_history",
+    fix_context: str | None = None,
 ) -> dict[str, str]:
     """Run the multi-turn file generation agent loop.
 
@@ -209,8 +210,12 @@ async def run_file_generation(
     """
     generated_files: dict[str, str] = {}
 
-    # Build initial messages
-    messages: list[dict] = [{"role": "user", "content": _build_initial_prompt(spec)}]
+    # Build initial messages — use fix_context if provided (targeted fix iteration)
+    if fix_context is not None:
+        initial_content = fix_context
+    else:
+        initial_content = _build_initial_prompt(spec)
+    messages: list[dict] = [{"role": "user", "content": initial_content}]
 
     for turn in range(MAX_TURNS_PER_ITERATION):
         # In stateless mode, reset messages each turn (after first)
