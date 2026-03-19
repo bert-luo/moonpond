@@ -164,13 +164,15 @@ class TestVerifierResult:
 # ---------------------------------------------------------------------------
 
 
-def _make_mock_client(response_json: dict) -> AsyncMock:
-    """Create a mock AsyncAnthropic client that returns the given JSON."""
+def _make_mock_client(response_json: dict, *, tool_name: str = "submit_spec") -> AsyncMock:
+    """Create a mock AsyncAnthropic client that returns a tool_use block."""
     client = AsyncMock()
     mock_response = MagicMock()
-    mock_content_block = MagicMock()
-    mock_content_block.text = json.dumps(response_json)
-    mock_response.content = [mock_content_block]
+    mock_tool_block = MagicMock()
+    mock_tool_block.type = "tool_use"
+    mock_tool_block.name = tool_name
+    mock_tool_block.input = response_json
+    mock_response.content = [mock_tool_block]
     client.messages.create = AsyncMock(return_value=mock_response)
     return client
 

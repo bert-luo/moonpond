@@ -192,7 +192,10 @@ class TestRunVerifier:
 
         response_json = {"errors": [], "summary": "All good"}
         client = AsyncMock()
-        mock_resp = _make_response([_make_text_block(json.dumps(response_json))])
+        mock_resp = _make_response(
+            [_make_tool_use_block("submit_verification", response_json)],
+            stop_reason="tool_use",
+        )
         client.messages.create = AsyncMock(return_value=mock_resp)
         emit = AsyncMock()
 
@@ -227,7 +230,10 @@ class TestRunVerifier:
             "summary": "2 issues found",
         }
         client = AsyncMock()
-        mock_resp = _make_response([_make_text_block(json.dumps(response_json))])
+        mock_resp = _make_response(
+            [_make_tool_use_block("submit_verification", response_json)],
+            stop_reason="tool_use",
+        )
         client.messages.create = AsyncMock(return_value=mock_resp)
         emit = AsyncMock()
 
@@ -247,7 +253,10 @@ class TestRunVerifier:
 
         response_json = {"errors": [], "summary": "Clean"}
         client = AsyncMock()
-        mock_resp = _make_response([_make_text_block(json.dumps(response_json))])
+        mock_resp = _make_response(
+            [_make_tool_use_block("submit_verification", response_json)],
+            stop_reason="tool_use",
+        )
         client.messages.create = AsyncMock(return_value=mock_resp)
         emit = AsyncMock()
 

@@ -1,12 +1,11 @@
 """Spec Generator — first conversation turn of the agentic pipeline.
 
 Converts a raw user prompt into an AgenticGameSpec via a single LLM call.
-Follows the project convention: client.messages.create + json.loads + model_validate.
+Uses tool_choice to force structured JSON output.
 """
 
 from __future__ import annotations
 
-import json
 import logging
 
 from anthropic import AsyncAnthropic
@@ -20,7 +19,7 @@ SONNET_MODEL = "claude-sonnet-4-6"
 
 SPEC_SYSTEM_PROMPT = """\
 You are a game design assistant. Given a user's raw game idea, produce a \
-detailed game specification as a JSON object.
+detailed game specification.
 
 Your job:
 - Choose a creative title for the game.
@@ -31,25 +30,73 @@ items, UI elements, etc.) with their Godot node types and behaviors.
 - Describe the scene layout and visual structure.
 - Specify win and fail conditions.
 
-Respond with a JSON object matching this exact schema:
-{
-  "title": "string - creative game title",
-  "genre": "string - game genre",
-  "mechanics": ["list of core gameplay mechanics"],
-  "entities": [
-    {
-      "name": "string - entity name (e.g. Player, Enemy, Coin)",
-      "type": "string - Godot node type (CharacterBody2D, Area2D, etc.)",
-      "behavior": "string - what this entity does"
-    }
-  ],
-  "scene_description": "string - description of the scene layout and visual structure",
-  "win_condition": "string - how the player wins",
-  "fail_condition": "string - how the player loses"
-}
-
-Respond ONLY with valid JSON. Do NOT include markdown code fences or any other text.\
+Call the submit_spec tool with your game specification.\
 """
+
+SUBMIT_SPEC_TOOL = {
+    "name": "submit_spec",
+    "description": "Submit the game specification.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "title": {
+                "type": "string",
+                "description": "Creative game title.",
+            },
+            "genre": {
+                "type": "string",
+                "description": "Game genre (platformer, shooter, puzzle, arcade, etc.).",
+            },
+            "mechanics": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of core gameplay mechanics.",
+            },
+            "entities": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Entity name (e.g. Player, Enemy, Coin).",
+                        },
+                        "type": {
+                            "type": "string",
+                            "description": "Godot node type (CharacterBody2D, Area2D, etc.).",
+                        },
+                        "behavior": {
+                            "type": "string",
+                            "description": "What this entity does.",
+                        },
+                    },
+                    "required": ["name", "type", "behavior"],
+                },
+            },
+            "scene_description": {
+                "type": "string",
+                "description": "Description of the scene layout and visual structure.",
+            },
+            "win_condition": {
+                "type": "string",
+                "description": "How the player wins.",
+            },
+            "fail_condition": {
+                "type": "string",
+                "description": "How the player loses.",
+            },
+        },
+        "required": [
+            "title",
+            "genre",
+            "mechanics",
+            "entities",
+            "scene_description",
+            "win_condition",
+            "fail_condition",
+        ],
+    },
+}
 
 
 async def run_spec_generator(
@@ -73,11 +120,13 @@ async def run_spec_generator(
         model=SONNET_MODEL,
         max_tokens=4096,
         system=SPEC_SYSTEM_PROMPT,
+        tools=[SUBMIT_SPEC_TOOL],
+        tool_choice={"type": "tool", "name": "submit_spec"},
         messages=[{"role": "user", "content": prompt}],
     )
 
-    raw = response.content[0].text
-    parsed = json.loads(raw)
-    result = AgenticGameSpec.model_validate(parsed)
+    # Extract the tool call input — guaranteed by tool_choice
+    tool_block = next(b for b in response.content if b.type == "tool_use")
+    result = AgenticGameSpec.model_validate(tool_block.input)
 
     return result

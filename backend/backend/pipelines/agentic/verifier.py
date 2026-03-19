@@ -2,6 +2,7 @@
 
 Makes a fresh LLM call (not connected to the generator conversation) to audit
 all generated files for a Godot 4 project and produces a structured error list.
+Uses tool_choice to force structured JSON output.
 """
 
 from __future__ import annotations
@@ -40,21 +41,51 @@ Severity levels:
 - "critical" — will cause a crash, blank screen, or completely broken gameplay
 - "warning" — may cause issues but the game could still partially function
 
-Respond ONLY with valid JSON matching this exact schema:
-{
-  "errors": [
-    {
-      "file_path": "filename.gd",
-      "error_type": "syntax" | "reference" | "logic" | "missing",
-      "description": "Clear description of the error",
-      "severity": "critical" | "warning"
-    }
-  ],
-  "summary": "Brief human-readable summary of findings"
-}
-
-If no errors are found, respond with: {"errors": [], "summary": "All files look correct."}\
+Call the submit_verification tool with your findings. \
+If no errors are found, call it with an empty errors list.\
 """
+
+SUBMIT_VERIFICATION_TOOL = {
+    "name": "submit_verification",
+    "description": "Submit the verification results with any errors found.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "errors": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "file_path": {
+                            "type": "string",
+                            "description": "Filename that has the error.",
+                        },
+                        "error_type": {
+                            "type": "string",
+                            "enum": ["syntax", "reference", "logic", "missing"],
+                            "description": "Category of error.",
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "Clear description of the error.",
+                        },
+                        "severity": {
+                            "type": "string",
+                            "enum": ["critical", "warning"],
+                            "description": "How severe the error is.",
+                        },
+                    },
+                    "required": ["file_path", "error_type", "description", "severity"],
+                },
+            },
+            "summary": {
+                "type": "string",
+                "description": "Brief human-readable summary of findings.",
+            },
+        },
+        "required": ["errors", "summary"],
+    },
+}
 
 
 def _build_verifier_prompt(spec: AgenticGameSpec, files: dict[str, str]) -> str:
@@ -85,7 +116,7 @@ def _build_verifier_prompt(spec: AgenticGameSpec, files: dict[str, str]) -> str:
         f"Review the following Godot 4 game project files for errors.\n\n"
         f"Game Specification:\n{spec_summary}\n\n"
         f"Generated Files ({len(files)} total):\n\n{files_block}\n\n"
-        f"Analyze all files and report any errors found."
+        f"Analyze all files and call submit_verification with any errors found."
     )
 
 
@@ -97,8 +128,8 @@ async def run_verifier(
 ) -> VerifierResult:
     """Run the verifier agent to audit generated game files.
 
-    Makes an independent LLM call (fresh context, no tools) to review
-    all generated files and produce a structured error report.
+    Makes an independent LLM call (fresh context) using tool_choice to force
+    structured output via the submit_verification tool.
 
     Args:
         client: Anthropic async client.
@@ -115,12 +146,14 @@ async def run_verifier(
         model=VERIFIER_MODEL,
         max_tokens=4096,
         system=VERIFIER_SYSTEM_PROMPT,
+        tools=[SUBMIT_VERIFICATION_TOOL],
+        tool_choice={"type": "tool", "name": "submit_verification"},
         messages=[{"role": "user", "content": _build_verifier_prompt(spec, files)}],
     )
 
-    raw = response.content[0].text
-    parsed = json.loads(raw)
-    result = VerifierResult.model_validate(parsed)
+    # Extract the tool call input — guaranteed by tool_choice
+    tool_block = next(b for b in response.content if b.type == "tool_use")
+    result = VerifierResult.model_validate(tool_block.input)
 
     error_count = len(result.errors)
     critical_count = sum(1 for e in result.errors if e.severity == "critical")
