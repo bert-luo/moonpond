@@ -14,6 +14,12 @@ from pathlib import Path
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.agentic.models import AgenticGameSpec
+from backend.pipelines.assets import (
+    CONTROL_SNIPPET_PATHS,
+    PALETTE_PATHS,
+    PARTICLE_PATHS,
+    SHADER_PATHS,
+)
 from backend.pipelines.base import EmitFn, ProgressEvent
 
 logger = logging.getLogger(__name__)
@@ -125,13 +131,39 @@ async def _dispatch_tool(
 # System prompt
 # ---------------------------------------------------------------------------
 
+def _build_asset_section() -> str:
+    """Build the available-assets block from imported constants."""
+    lines = ["AVAILABLE ASSETS (use these instead of generating placeholders):"]
+
+    lines.append("Shaders (apply via ShaderMaterial):")
+    for name, path in SHADER_PATHS.items():
+        lines.append(f"  {name}: {path}")
+
+    lines.append("")
+    lines.append("Palettes (Gradient resources, sample via GameManager.get_palette_color(t)):")
+    for name, path in PALETTE_PATHS.items():
+        lines.append(f"  {name}: {path}")
+
+    lines.append("")
+    lines.append("Particles (preload and instance):")
+    for name, path in PARTICLE_PATHS.items():
+        lines.append(f"  {name}: {path}")
+
+    lines.append("")
+    lines.append("Control snippets (attach as script to any Node2D):")
+    for name, path in CONTROL_SNIPPET_PATHS.items():
+        lines.append(f"  {name}: {path}")
+
+    return "\n".join(lines)
+
+
 GENERATOR_SYSTEM_PROMPT = """\
 You are an expert Godot 4 game developer. Your job is to generate all files \
 for a complete, playable 2D game project one at a time by calling write_file.
 
 IMPORTANT RULES:
 - Generate files in this order: main .gd scripts first, then scene files (.tscn), then auxiliary files.
-- The game viewport is 1152x648 pixels (from the template project.godot).
+- You MUST generate project.godot as one of your files. Do NOT generate export_presets.cfg or .import files.
 - Use Godot 4 GDScript syntax: @onready, @export, signal declarations with "signal name", \
 typed variables with "var x: Type", super() instead of .func(), etc.
 - For .tscn files, use Godot 4 text scene format with [gd_scene], [ext_resource], \
@@ -140,11 +172,37 @@ typed variables with "var x: Type", super() instead of .func(), etc.
 - Use read_file to inspect previously written files when generating dependent files.
 - When all files are complete and the game is ready to play, STOP calling tools. \
 Simply respond with a text summary of what you built.
-- Do NOT generate project.godot, export_presets.cfg, or .import files — those come from the template.
 - All entity scripts should extend appropriate Godot node types (Node2D, CharacterBody2D, Area2D, etc.).
 - Connect signals in _ready() using connect() — do NOT rely on editor signal connections.
-- The main scene is always Main.tscn with a root Node2D.\
-"""
+- The main scene is always Main.tscn with a root Node2D.
+- You MUST generate every script file that you register as an autoload in project.godot.
+
+PROJECT.GODOT — when generating project.godot, ALWAYS include these sections verbatim:
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+
+[display]
+window/size/viewport_width=1152
+window/size/viewport_height=648
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+For [autoload], list every singleton script you generate, e.g.:
+[autoload]
+GameManager="*res://game_manager.gd"
+
+For [input], use simplified format — one action per line:
+[input]
+move_left=arrow_left
+move_right=arrow_right
+jump=space
+shoot=z
+(Supported keys: arrow_left, arrow_right, arrow_up, arrow_down, \
+space, enter, escape, shift, ctrl, tab, backspace, a-z, 0-9, f1-f12)
+
+""" + _build_asset_section() + "\n"
 
 
 # ---------------------------------------------------------------------------
