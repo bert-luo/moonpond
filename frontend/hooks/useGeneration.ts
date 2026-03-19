@@ -85,6 +85,8 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
 
       // Named event: error (backend-emitted error event)
       es.addEventListener('error', (e: Event) => {
+        // Skip if already closed (e.g. after a successful done event)
+        if (esRef.current !== es) return;
         const me = e as MessageEvent;
         // MessageEvent has .data, generic Event (network error) does not
         if (me.data !== undefined) {

@@ -70,7 +70,7 @@ GAMES_DIR.mkdir(exist_ok=True)
 async def generate(
     req: GenerateRequest,
     background_tasks: BackgroundTasks,
-    pipeline: str = "multi_stage",
+    pipeline: str = "contract",
 ) -> GenerateResponse:
     """Create a new game generation job and return job_id immediately."""
     job_id = str(uuid.uuid4())
@@ -107,7 +107,7 @@ async def stream(job_id: str):
         from .pipelines.base import ProgressEvent
 
         not_found = ProgressEvent(type="error", message="Job not found")
-        yield ServerSentEvent(data=not_found.model_dump_json(), event="error")
+        yield ServerSentEvent(raw_data=not_found.model_dump_json(), event="error")
         return
 
     queue = active_jobs[job_id]
@@ -127,7 +127,7 @@ async def stream(job_id: str):
         if event is None:
             del active_jobs[job_id]
             return
-        yield ServerSentEvent(data=event.model_dump_json(), event=event.type)
+        yield ServerSentEvent(raw_data=event.model_dump_json(), event=event.type)
 
     # Total timeout reached
     from .pipelines.base import ProgressEvent
@@ -135,7 +135,7 @@ async def stream(job_id: str):
     timeout_event = ProgressEvent(
         type="error", message="Generation timed out — please try again"
     )
-    yield ServerSentEvent(data=timeout_event.model_dump_json(), event="error")
+    yield ServerSentEvent(raw_data=timeout_event.model_dump_json(), event="error")
     if job_id in active_jobs:
         del active_jobs[job_id]
 
