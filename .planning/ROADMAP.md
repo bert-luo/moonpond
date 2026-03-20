@@ -265,7 +265,7 @@ Plans:
   6. Chat displays file name and byte size for each file_generated SSE event
   7. Chat displays controls inline in the message stream after generation completes (not as a separate block)
   8. Backend emits spec_complete event after spec generation and size_bytes with file_generated events
-**Plans:** 1/3 plans executed
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 10-01-PLAN.md — Multi-session state types, reducer, SSE hook updates, backend event emissions

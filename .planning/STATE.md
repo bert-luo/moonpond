@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-03-20T09:51:36.809Z"
-last_activity: 2026-03-20 — Completed 10-01-PLAN.md
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-03-20T09:56:18.285Z"
+last_activity: 2026-03-20 — Completed 10-02-PLAN.md
 progress:
   total_phases: 14
   completed_phases: 10
   total_plans: 36
-  completed_plans: 31
-  percent: 86
+  completed_plans: 32
+  percent: 89
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 10 of 10 (Frontend UX Improvements)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In Progress
-Last activity: 2026-03-20 — Completed 10-01-PLAN.md
+Last activity: 2026-03-20 — Completed 10-02-PLAN.md
 
-Progress: [████████░░] 86%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Progress: [████████░░] 86%
 | Phase 09 P01 | 1min | 2 tasks | 45 files |
 | Phase 09 P02 | 4min | 2 tasks | 5 files |
 | Phase 10 P01 | 4min | 2 tasks | 7 files |
+| Phase 10 P02 | 2min | 2 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -157,6 +158,9 @@ Recent decisions affecting current work:
 - [Phase 09]: GENERATOR_SYSTEM_PROMPT backward-compat constant = build_generator_system_prompt('2D')
 - [Phase 10]: GenerationState kept as deprecated type alias (= GameSession) for backward compat during migration
 - [Phase 10]: page.tsx derives activeSession from AppState, bridges old component interfaces to new multi-session model
+- [Phase 10]: ChatPanel receives GameSession prop instead of full AppState for clean session isolation
+- [Phase 10]: Controls rendered inline as message type, standalone controls legend removed
+- [Phase 10]: Landing page shows when all sessions idle; hidden div preserves app DOM state
 
 ### Roadmap Evolution
 
@@ -182,6 +186,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T09:51:36.806Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-03-20T09:56:18.276Z
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None
