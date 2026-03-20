@@ -74,8 +74,8 @@ export function ChatPanel({ session, onSubmit, onReset }: ChatPanelProps) {
               <div className="max-w-[90%] rounded-lg px-3 py-2 text-sm bg-[var(--color-surface)] text-[var(--color-text-muted)]">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-2 align-middle" />
                 <span data-testid="file-name">{msg.data?.filename as string}</span>
-                <span className="ml-2 text-xs opacity-70" data-testid="file-bytes">
-                  {((msg.data?.bytes as number) ?? 0).toLocaleString('en-US')} bytes
+                <span className="ml-2 text-xs opacity-70" data-testid="file-lines">
+                  {(msg.data?.lines as number) ?? 0} lines
                 </span>
               </div>
             ) : msg.type === 'controls' ? (

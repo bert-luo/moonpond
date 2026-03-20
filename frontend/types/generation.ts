@@ -70,7 +70,7 @@ export type GenerationAction =
   | { type: 'SUBMIT'; sessionId: string }
   | { type: 'SSE_STAGE'; sessionId: string; message: string }
   | { type: 'SSE_SPEC_COMPLETE'; sessionId: string; title: string; description: string }
-  | { type: 'SSE_FILE_WRITTEN'; sessionId: string; filename: string; bytes: number }
+  | { type: 'SSE_FILE_WRITTEN'; sessionId: string; filename: string; lines: number }
   | { type: 'SSE_DONE'; sessionId: string; gameUrl: string; controls: ControlMapping[] }
   | { type: 'SSE_ERROR'; sessionId: string; message: string }
   | { type: 'RESET'; sessionId: string };
@@ -84,11 +84,6 @@ function updateSession(
   updater: (s: GameSession) => GameSession,
 ): GameSession[] {
   return sessions.map((s) => (s.id === id ? updater(s) : s));
-}
-
-/** Format a byte count with commas for display. */
-function formatBytes(bytes: number): string {
-  return bytes.toLocaleString('en-US');
 }
 
 /** Reducer for generation state transitions. */
@@ -164,8 +159,8 @@ export function generationReducer(
             {
               id: crypto.randomUUID(),
               type: 'file_written' as const,
-              text: `Generated ${action.filename} (${formatBytes(action.bytes)} bytes)`,
-              data: { filename: action.filename, bytes: action.bytes },
+              text: `Generated ${action.filename} (${action.lines} lines)`,
+              data: { filename: action.filename, lines: action.lines },
             },
           ],
         })),

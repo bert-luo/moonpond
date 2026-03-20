@@ -84,20 +84,20 @@ describe('ChatPanel', () => {
     expect(screen.getByText('A really cool game')).toBeDefined();
   });
 
-  it('file_written message renders filename and byte count', () => {
+  it('file_written message renders filename and line count', () => {
     const session = makeSession({
       status: 'generating',
       messages: [
         makeMessage({
           type: 'file_written',
-          text: 'Generated player.gd (1234 bytes)',
-          data: { filename: 'player.gd', bytes: 1234 },
+          text: 'Generated player.gd (42 lines)',
+          data: { filename: 'player.gd', lines: 42 },
         }),
       ],
     });
     render(<ChatPanel session={session} onSubmit={vi.fn()} onReset={vi.fn()} />);
     expect(screen.getByTestId('file-name').textContent).toBe('player.gd');
-    expect(screen.getByTestId('file-bytes').textContent).toContain('1,234');
+    expect(screen.getByTestId('file-lines').textContent).toContain('42');
   });
 
   it('controls message renders key/action grid inline', () => {

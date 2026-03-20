@@ -106,21 +106,21 @@ describe('generationReducer', () => {
     });
   });
 
-  it('SSE_FILE_WRITTEN appends a file_written message with filename and bytes', () => {
+  it('SSE_FILE_WRITTEN appends a file_written message with filename and line count', () => {
     const s0 = makeSession({ id: 's0' });
     const state: AppState = { sessions: [s0], activeSessionIdx: 0 };
     const next = generationReducer(state, {
       type: 'SSE_FILE_WRITTEN',
       sessionId: 's0',
       filename: 'player.gd',
-      bytes: 1234,
+      lines: 42,
     });
     expect(next.sessions[0].messages.length).toBe(1);
     const msg = next.sessions[0].messages[0];
     expect(msg.type).toBe('file_written');
     expect(msg.text).toContain('player.gd');
-    expect(msg.text).toContain('1,234');
-    expect(msg.data).toEqual({ filename: 'player.gd', bytes: 1234 });
+    expect(msg.text).toContain('42');
+    expect(msg.data).toEqual({ filename: 'player.gd', lines: 42 });
   });
 
   it('SSE_DONE sets status=done, gameUrl, appends complete and controls messages', () => {

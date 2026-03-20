@@ -118,7 +118,7 @@ describe('useGeneration', () => {
     });
   });
 
-  it('file_generated event dispatches SSE_FILE_WRITTEN with filename and bytes', async () => {
+  it('file_generated event dispatches SSE_FILE_WRITTEN with filename and line count', async () => {
     mockFetchSuccess();
     const { result } = renderHook(() => useGeneration(dispatch));
 
@@ -131,7 +131,7 @@ describe('useGeneration', () => {
       es.emit(
         'file_generated',
         JSON.stringify({
-          data: { filename: 'player.gd', size_bytes: 2048 },
+          data: { filename: 'player.gd', line_count: 42 },
         }),
       );
     });
@@ -140,7 +140,7 @@ describe('useGeneration', () => {
       type: 'SSE_FILE_WRITTEN',
       sessionId: SESSION_ID,
       filename: 'player.gd',
-      bytes: 2048,
+      lines: 42,
     });
   });
 

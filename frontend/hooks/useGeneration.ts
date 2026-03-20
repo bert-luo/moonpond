@@ -67,8 +67,9 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
         try {
           const event = JSON.parse(me.data);
           const d = event.data ?? {};
+          console.log('[SSE] spec_complete', d);
           dispatch({ type: 'SSE_SPEC_COMPLETE', sessionId, title: d.title ?? '', description: d.description ?? '' });
-        } catch { /* ignore parse errors */ }
+        } catch (err) { console.error('[SSE] spec_complete parse error', err); }
       });
 
       // Named event: file_generated
@@ -77,7 +78,7 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
         try {
           const event = JSON.parse(me.data);
           const d = event.data ?? {};
-          dispatch({ type: 'SSE_FILE_WRITTEN', sessionId, filename: d.filename ?? 'unknown', bytes: d.size_bytes ?? 0 });
+          dispatch({ type: 'SSE_FILE_WRITTEN', sessionId, filename: d.filename ?? 'unknown', lines: d.line_count ?? 0 });
         } catch { /* ignore parse errors */ }
       });
 
