@@ -250,3 +250,24 @@ Plans:
 Plans:
 - [ ] 09-01-PLAN.md — Schema perspective field, spec generator updates, base_3d template creation
 - [ ] 09-02-PLAN.md — Dynamic prompt builder, exporter template selection, pipeline wiring, tests
+
+### Phase 10: Frontend UX improvements - landing page, game tabs, and SSE streaming enhancements
+
+**Goal:** A polished frontend experience with a full-screen landing page (moon/water background, centered prompt with example chips), game tabs for multi-session management, and enhanced SSE streaming that shows game title/description after spec generation, file names/sizes during generation, and inline controls in the chat stream
+**Requirements**: FE10-STATE, FE10-SSE-SPEC, FE10-SSE-FILE, FE10-LANDING, FE10-TABS, FE10-CHAT
+**Depends on:** Phase 9
+**Success Criteria** (what must be TRUE):
+  1. A full-screen landing page with moon/water-reflection background shows when no game has been started this session
+  2. The landing page has a centered prompt input with translucent example prompt chips that fill the input when clicked
+  3. Game tabs at the top of the chat column show session titles (or "Game N" fallback) with a plus button for new sessions
+  4. Clicking a tab switches both the chat messages and game viewer to the selected session
+  5. Chat displays game title and description after spec_complete SSE event
+  6. Chat displays file name and byte size for each file_generated SSE event
+  7. Chat displays controls inline in the message stream after generation completes (not as a separate block)
+  8. Backend emits spec_complete event after spec generation and size_bytes with file_generated events
+**Plans:** 3 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Multi-session state types, reducer, SSE hook updates, backend event emissions
+- [ ] 10-02-PLAN.md — LandingPage, GameTabs, ChatPanel enhancements, page.tsx orchestration
+- [ ] 10-03-PLAN.md — Human verification checkpoint: full visual and functional review in browser
