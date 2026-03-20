@@ -163,17 +163,35 @@ for a complete, playable 2D game project one at a time by calling write_file.
 
 TARGET ENGINE: Godot 4.5.1. You MUST generate code compatible with Godot 4.5.
 
-CRITICAL — `:=` type inference: In Godot 4.5, using `:=` with any function that \
-returns Variant is a PARSE ERROR. This includes: load(), preload(), lerp(), \
-ceil(), floor(), clamp(), randf(), randf_range(), randi_range(), abs(), min(), \
-max(), snapped(), get_node(), and any custom method without an explicit return \
-type annotation.
+CRITICAL — Variant type issues: In Godot 4.5, functions like lerp(), ceil(), \
+floor(), clamp(), randf(), randf_range(), randi_range(), abs(), min(), max(), \
+snapped(), load(), preload(), get_node(), and any custom method without an \
+explicit return type annotation ALL return Variant.
 
-Always use explicit types or untyped `var`:
-  var x: float = lerp(a, b, t)       # explicit type — CORRECT
-  var scene: PackedScene = load(...)  # explicit type — CORRECT
+Two patterns cause PARSE ERRORS:
+  var x := lerp(a, b, t)        # `:=` with Variant — PARSE ERROR
+  var x: float = lerp(a, b, t)  # explicit type annotation with Variant — PARSE ERROR
+
+Use UNTYPED `var` for any Variant-returning function:
   var x = lerp(a, b, t)              # untyped — CORRECT
-NEVER use: var x := lerp(a, b, t)    # PARSE ERROR in Godot 4.5
+  var scene = load(...)               # untyped — CORRECT
+Or use the typed variants where available:
+  var x = lerpf(a, b, t)             # returns float — CORRECT
+  var x = clampf(val, lo, hi)        # returns float — CORRECT
+  var x = floorf(val)                 # returns float — CORRECT
+
+CRITICAL — Dynamic node spawning: When instantiating nodes at runtime, ALWAYS \
+set global_position BEFORE calling add_child(). Godot's _ready() fires during \
+add_child(), so any position-dependent logic in _ready() will see the default \
+(0,0) position if you set position after add_child().
+  CORRECT:
+    var e = enemy_scene.instantiate()
+    e.global_position = spawn_pos        # position FIRST
+    get_tree().current_scene.add_child(e) # then add to tree
+  WRONG:
+    var e = enemy_scene.instantiate()
+    get_tree().current_scene.add_child(e) # _ready() fires with pos=(0,0)
+    e.global_position = spawn_pos         # too late — _ready() already ran
 
 IMPORTANT RULES:
 - Generate files in this order: main .gd scripts first, then scene files (.tscn), then auxiliary files.
@@ -262,6 +280,7 @@ async def run_file_generation(
     *,
     context_strategy: str = "full_history",
     fix_context: str | None = None,
+    existing_files: dict[str, str] | None = None,
 ) -> tuple[dict[str, str], list[dict]]:
     """Run the multi-turn file generation agent loop.
 
@@ -276,11 +295,13 @@ async def run_file_generation(
         emit: Async callback for progress events.
         context_strategy: "full_history" accumulates messages,
             "stateless" resets each turn with a fresh prompt.
+        existing_files: Pre-seed generated_files with files from prior
+            iterations so read_file can access them during fix iterations.
 
     Returns:
         Tuple of (generated_files dict, conversation messages list).
     """
-    generated_files: dict[str, str] = {}
+    generated_files: dict[str, str] = dict(existing_files) if existing_files else {}
 
     # Build initial messages — use fix_context if provided (targeted fix iteration)
     if fix_context is not None:

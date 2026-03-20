@@ -21,7 +21,7 @@ from backend.pipelines.agentic.verifier import run_verifier
 from backend.pipelines.base import EmitFn, GameResult, ProgressEvent
 from backend.pipelines.exporter import GAMES_DIR, run_exporter
 
-MAX_ITERATIONS = 3
+MAX_ITERATIONS = 4
 """Maximum generate-verify-fix iterations before proceeding to export."""
 
 
@@ -172,6 +172,7 @@ class AgenticPipeline:
                     emit,
                     context_strategy=self._context_strategy,
                     fix_context=fix_ctx,
+                    existing_files=all_files if fix_ctx else None,
                 )
 
                 # Merge new/updated files into the running set
@@ -204,15 +205,30 @@ class AgenticPipeline:
                 if not verifier_result.has_critical_errors:
                     break
 
-                # Collect flagged files for targeted fix
+                # Collect flagged files for targeted fix — include criticals
+                # and high-confidence warnings that affect core gameplay
+                _GAMEPLAY_KEYWORDS = {
+                    "non-functional", "broken", "will not work",
+                    "never called", "wrong position", "default position",
+                    "patrol", "spawn",
+                }
+
+                def _should_fix(err):  # noqa: ANN001, ANN202
+                    if err.severity == "critical":
+                        return True
+                    if err.severity == "warning":
+                        desc_lower = err.description.lower()
+                        return any(kw in desc_lower for kw in _GAMEPLAY_KEYWORDS)
+                    return False
+
                 flagged_filenames = {
                     e.file_path
                     for e in verifier_result.errors
-                    if e.severity == "critical"
+                    if _should_fix(e)
                 }
                 errors_by_file: dict[str, list[str]] = {}
                 for err in verifier_result.errors:
-                    if err.severity == "critical":
+                    if _should_fix(err):
                         errors_by_file.setdefault(err.file_path, []).append(
                             err.description
                         )
@@ -225,7 +241,9 @@ class AgenticPipeline:
 
             # Expand simplified input map to full Godot Object() format
             if "project.godot" in all_files:
-                all_files["project.godot"] = expand_input_map(all_files["project.godot"])
+                all_files["project.godot"] = expand_input_map(
+                    all_files["project.godot"]
+                )
                 (project_dir / "project.godot").write_text(all_files["project.godot"])
 
             # Stage 3: Export
