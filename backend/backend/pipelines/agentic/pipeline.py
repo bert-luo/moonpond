@@ -14,6 +14,7 @@ from pathlib import Path
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.agentic.file_generator import run_file_generation
+from backend.pipelines.agentic.image_gen_client import ImageGenClient, ImageGenError
 from backend.pipelines.agentic.input_map import expand_input_map
 from backend.pipelines.agentic.models import AgenticGameSpec, VerifierTask
 from backend.pipelines.agentic.spec_generator import run_spec_generator
@@ -128,9 +129,15 @@ class AgenticPipeline:
       3. Exporter         -- assembled project -> WASM
     """
 
-    def __init__(self, *, context_strategy: str = "full_history") -> None:
+    def __init__(
+        self,
+        *,
+        context_strategy: str = "full_history",
+        thinking: bool = False,
+    ) -> None:
         self._client = AsyncAnthropic()
         self._context_strategy = context_strategy
+        self._thinking = thinking
 
     async def generate(
         self,
@@ -174,7 +181,7 @@ class AgenticPipeline:
             project_dir = GAMES_DIR / game_dir / "project"
             project_dir.mkdir(parents=True, exist_ok=True)
 
-            # Initialize 3D asset generator if API key is available
+            # Initialize asset generators if API keys are available
             tripo: TripoAssetGenerator | None = None
             if spec.perspective == "3D":
                 try:
@@ -182,6 +189,14 @@ class AgenticPipeline:
                     logger.info("Tripo 3D asset generator initialized")
                 except TripoError:
                     logger.info("TRIPO_API_KEY not set — 3D asset generation disabled")
+
+            image_gen: ImageGenClient | None = None
+            if spec.perspective == "2D":
+                try:
+                    image_gen = ImageGenClient()
+                    logger.info("2D image generator initialized")
+                except ImageGenError:
+                    logger.info("OPENAI_API_KEY not set — 2D asset generation disabled")
 
             # Asset counter shared across iterations (mutable list)
             asset_counter: list[int] = [0]
@@ -218,8 +233,10 @@ class AgenticPipeline:
                     fix_context=fix_ctx,
                     existing_files=all_files if fix_ctx else None,
                     tripo=tripo,
+                    image_gen=image_gen,
                     asset_counter=asset_counter,
                     soft_timeout=soft_timeout,
+                    thinking=self._thinking,
                 )
 
                 # Merge new/updated files into the running set
@@ -241,9 +258,23 @@ class AgenticPipeline:
                         json.dumps(_serialize_messages(conversation), indent=2)
                     )
 
+                # Collect generated asset paths (2D sprites + 3D models)
+                generated_assets: list[str] = []
+                sprites_dir = project_dir / "assets" / "sprites"
+                if sprites_dir.is_dir():
+                    for p in sorted(sprites_dir.iterdir()):
+                        if p.suffix in (".png", ".jpg", ".svg"):
+                            generated_assets.append(f"res://assets/sprites/{p.name}")
+                models_dir = project_dir / "assets" / "models"
+                if models_dir.is_dir():
+                    for p in sorted(models_dir.iterdir()):
+                        if p.suffix in (".glb", ".gltf"):
+                            generated_assets.append(f"res://assets/models/{p.name}")
+
                 # Verify
                 verifier_result = await run_verifier(
-                    self._client, spec, all_files, emit
+                    self._client, spec, all_files, emit,
+                    generated_assets=generated_assets,
                 )
 
                 if dump_dir:

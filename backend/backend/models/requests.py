@@ -8,3 +8,4 @@ class GenerateRequest(BaseModel):
 
     prompt: str
     save_intermediate: bool = True
+    thinking: bool = False

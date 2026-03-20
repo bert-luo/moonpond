@@ -14,6 +14,11 @@ from pathlib import Path
 
 from anthropic import AsyncAnthropic
 
+from backend.pipelines.agentic.image_gen_client import (
+    ImageGenClient,
+    ImageGenError,
+    PostProcessConfig,
+)
 from backend.pipelines.agentic.models import AgenticGameSpec
 from backend.pipelines.agentic.tripo_client import TripoAssetGenerator, TripoError
 from backend.pipelines.assets import (
@@ -108,6 +113,55 @@ GENERATE_3D_ASSET_TOOL = {
     },
 }
 
+GENERATE_2D_ASSET_TOOL = {
+    "name": "generate_2d_asset",
+    "description": (
+        "Generate a 2D sprite asset from a text description using AI image generation. "
+        "Returns the res:// path of the generated .png file in assets/sprites/. "
+        "For animated entities, set spritesheet=true to generate a multi-frame spritesheet. "
+        "Use for key visual elements (player, enemies, items, NPCs) — NOT for simple "
+        "rectangles or shapes that can be drawn with ColorRect or draw_rect(). "
+        "Maximum 8 assets per game. Each call takes ~10-30 seconds."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "asset_name": {
+                "type": "string",
+                "description": (
+                    "Short snake_case name for the asset file, e.g. "
+                    "'player', 'coin', 'enemy_slime'."
+                ),
+            },
+            "prompt": {
+                "type": "string",
+                "description": (
+                    "Detailed description of the sprite to generate. "
+                    "Be specific about style, color, pose, and view angle. "
+                    "E.g. 'A pixel art treasure chest with gold trim, "
+                    "top-down view, 2D game style'."
+                ),
+            },
+            "spritesheet": {
+                "type": "boolean",
+                "description": (
+                    "If true, generates a multi-frame spritesheet (e.g. walk cycle). "
+                    "The prompt should describe the animation. "
+                    "Frames are laid out horizontally. Default false."
+                ),
+            },
+            "num_frames": {
+                "type": "integer",
+                "description": (
+                    "Number of frames for spritesheet mode (default 4, max 6). "
+                    "Ignored if spritesheet is false."
+                ),
+            },
+        },
+        "required": ["asset_name", "prompt"],
+    },
+}
+
 AGENT_TOOLS_BASE = [WRITE_FILE_TOOL, READ_FILE_TOOL]
 AGENT_TOOLS = AGENT_TOOLS_BASE  # default (2D or no API key)
 
@@ -118,6 +172,10 @@ AGENT_TOOLS = AGENT_TOOLS_BASE  # default (2D or no API key)
 GENERATOR_MODEL = "claude-sonnet-4-6"
 MAX_TURNS_PER_ITERATION = 30
 MAX_3D_ASSETS = 5
+MAX_2D_ASSETS = 8
+
+# Default post-processing for pipeline-generated 2D assets
+_PIPELINE_POST_PROCESS = PostProcessConfig(trim=True)
 
 # ---------------------------------------------------------------------------
 # Tool dispatch
@@ -131,6 +189,7 @@ async def _dispatch_tool(
     generated_files: dict[str, str],
     *,
     tripo: TripoAssetGenerator | None = None,
+    image_gen: ImageGenClient | None = None,
     asset_counter: list[int] | None = None,
 ) -> str:
     """Execute a tool call and return the result string for tool_result.
@@ -142,6 +201,7 @@ async def _dispatch_tool(
         generated_files: Mutable dict tracking filename -> content for all
             files written during this generation iteration.
         tripo: Optional Tripo client for 3D asset generation.
+        image_gen: Optional ImageGenClient for 2D sprite generation.
         asset_counter: Mutable single-element list tracking assets generated.
 
     Returns:
@@ -212,6 +272,86 @@ async def _dispatch_tool(
             return (
                 f"ERROR: unexpected failure generating '{asset_name}': {e}. "
                 "Fall back to built-in meshes."
+            )
+
+    elif tool_name == "generate_2d_asset":
+        if image_gen is None:
+            return "ERROR: 2D asset generation not available (no API key configured)"
+
+        counter = asset_counter or [0]
+        if counter[0] >= MAX_2D_ASSETS:
+            return (
+                f"ERROR: asset budget exhausted ({MAX_2D_ASSETS}/{MAX_2D_ASSETS} used). "
+                "Use ColorRect or draw_rect() for remaining visuals."
+            )
+
+        asset_name = tool_input.get("asset_name", "")
+        prompt = tool_input.get("prompt", "")
+        is_spritesheet = tool_input.get("spritesheet", False)
+        num_frames = tool_input.get("num_frames", 4)
+        if not asset_name or not prompt:
+            return "ERROR: generate_2d_asset requires 'asset_name' and 'prompt' parameters"
+
+        dest = game_dir / "assets" / "sprites" / f"{asset_name}.png"
+
+        try:
+            if is_spritesheet:
+                asset = await image_gen.generate_spritesheet(
+                    prompt=prompt,
+                    dest=dest,
+                    num_frames=min(num_frames, 6),
+                    post_process=_PIPELINE_POST_PROCESS,
+                )
+                counter[0] += 1
+                remaining = MAX_2D_ASSETS - counter[0]
+                res_path = f"res://assets/sprites/{asset_name}.png"
+                fw, fh = asset.frame_size
+                n = asset.frame_count
+                return (
+                    f"OK: generated {res_path} ({asset.image.width}x{asset.image.height}, "
+                    f"{n} frames, {fw}x{fh} each). "
+                    f"{remaining} asset(s) remaining.\n"
+                    f"Load in GDScript as AnimatedSprite2D:\n"
+                    f'  var frames = SpriteFrames.new()\n'
+                    f'  var tex = load("{res_path}")\n'
+                    f'  for i in range({n}):\n'
+                    f'      var atlas = AtlasTexture.new()\n'
+                    f'      atlas.atlas = tex\n'
+                    f'      atlas.region = Rect2(i * {fw}, 0, {fw}, {fh})\n'
+                    f'      frames.add_frame("default", atlas)\n'
+                    f'  var anim_sprite = AnimatedSprite2D.new()\n'
+                    f'  anim_sprite.sprite_frames = frames\n'
+                    f'  anim_sprite.play("default")\n'
+                    f'  add_child(anim_sprite)'
+                )
+            else:
+                asset = await image_gen.generate(
+                    prompt=prompt,
+                    dest=dest,
+                    post_process=_PIPELINE_POST_PROCESS,
+                )
+                counter[0] += 1
+                remaining = MAX_2D_ASSETS - counter[0]
+                res_path = f"res://assets/sprites/{asset_name}.png"
+                return (
+                    f"OK: generated {res_path} ({asset.image.width}x{asset.image.height}). "
+                    f"{remaining} asset(s) remaining.\n"
+                    f"Load in GDScript:\n"
+                    f'  var sprite = Sprite2D.new()\n'
+                    f'  sprite.texture = load("{res_path}")\n'
+                    f'  add_child(sprite)'
+                )
+        except ImageGenError as e:
+            logger.error("generate_2d_asset failed for %s: %s", asset_name, e)
+            return (
+                f"ERROR: 2D generation failed for '{asset_name}': {e}. "
+                "Fall back to ColorRect with a solid color."
+            )
+        except Exception as e:
+            logger.error("generate_2d_asset unexpected error for %s: %s", asset_name, e)
+            return (
+                f"ERROR: unexpected failure generating '{asset_name}': {e}. "
+                "Fall back to ColorRect."
             )
 
     else:
@@ -315,6 +455,40 @@ def build_generator_system_prompt(perspective: str = "2D") -> str:
             'window/stretch/mode="canvas_items"\n'
             'window/stretch/aspect="expand"'
         )
+
+    # 2D asset generation (only for 2D)
+    essentials_2d = ""
+    if perspective == "2D":
+        essentials_2d = """
+2D ASSET GENERATION (generate_2d_asset tool):
+You have access to an AI image generator. You SHOULD use it to make the game visually
+appealing — games with real sprite art look dramatically better than games using only
+ColorRect and primitive shapes. Plan to use 3-5 assets per game for the most important entities.
+- Use for key game elements: player character, enemies, collectibles, NPCs, items
+- Do NOT waste assets on simple shapes (backgrounds, walls, floors) — use ColorRect or draw_rect()
+- Maximum 8 assets per game — budget them for the most visually important elements
+- Set spritesheet=true for animated entities (player walk cycle, enemy animation)
+- Each asset is a .png in res://assets/sprites/
+- For single sprites, load as:
+    var sprite = Sprite2D.new()
+    sprite.texture = load("res://assets/sprites/asset_name.png")
+    add_child(sprite)
+- For spritesheets, the tool returns frame count and size — use AtlasTexture to slice frames:
+    var frames = SpriteFrames.new()
+    var tex = load("res://assets/sprites/asset_name.png")
+    for i in range(N):
+        var atlas = AtlasTexture.new()
+        atlas.atlas = tex
+        atlas.region = Rect2(i * FRAME_W, 0, FRAME_W, FRAME_H)
+        frames.add_frame("default", atlas)
+    var anim_sprite = AnimatedSprite2D.new()
+    anim_sprite.sprite_frames = frames
+- Generation takes ~10-30 seconds per asset — generate GDScript files first, call generate_2d_asset
+  for key entities, then generate .tscn scene files that reference the sprites
+- If generation fails, the tool returns an error — fall back to ColorRect with a solid color
+- In .tscn files, do NOT reference generated .png files as ext_resource — load them via GDScript at runtime
+
+"""
 
     # 3D essentials (only for 3D)
     essentials_3d = ""
@@ -430,6 +604,7 @@ shoot=z
 space, enter, escape, shift, ctrl, tab, backspace, a-z, 0-9, f1-f12)
 
 """
+        + essentials_2d
         + essentials_3d
         + _build_asset_section(perspective)
         + "\n"
@@ -446,7 +621,12 @@ GENERATOR_SYSTEM_PROMPT = build_generator_system_prompt("2D")
 # ---------------------------------------------------------------------------
 
 
-def _build_initial_prompt(spec: AgenticGameSpec, *, has_3d_assets: bool = False) -> str:
+def _build_initial_prompt(
+    spec: AgenticGameSpec,
+    *,
+    has_3d_assets: bool = False,
+    has_2d_assets: bool = False,
+) -> str:
     """Build the initial user message from the game spec."""
     spec_json = json.dumps(spec.model_dump(), indent=2)
     asset_hint = ""
@@ -455,6 +635,12 @@ def _build_initial_prompt(spec: AgenticGameSpec, *, has_3d_assets: bool = False)
             " After writing the core scripts, use generate_3d_asset to create "
             "3D models for the key entities (player, enemies, collectibles, etc.) "
             "before generating scene files."
+        )
+    elif has_2d_assets:
+        asset_hint = (
+            " After writing the core scripts, use generate_2d_asset to create "
+            "sprites for the key entities (player, enemies, collectibles, etc.) "
+            "before generating scene files. Use spritesheet=true for animated entities."
         )
     return (
         f"Generate all files for this Godot 4 game project.\n\n"
@@ -499,8 +685,10 @@ async def run_file_generation(
     fix_context: str | None = None,
     existing_files: dict[str, str] | None = None,
     tripo: TripoAssetGenerator | None = None,
+    image_gen: ImageGenClient | None = None,
     asset_counter: list[int] | None = None,
     soft_timeout: SoftTimeout | None = None,
+    thinking: bool = False,
 ) -> tuple[dict[str, str], list[dict]]:
     """Run the multi-turn file generation agent loop.
 
@@ -518,8 +706,11 @@ async def run_file_generation(
         existing_files: Pre-seed generated_files with files from prior
             iterations so read_file can access them during fix iterations.
         tripo: Optional Tripo client for 3D asset generation.
+        image_gen: Optional ImageGenClient for 2D sprite generation.
         asset_counter: Mutable single-element list tracking total assets
             generated across iterations (shared with caller).
+        thinking: If True, enable extended thinking on the file generation
+            model (budget_tokens=8192, max_tokens doubled to 16384).
 
     Returns:
         Tuple of (generated_files dict, conversation messages list).
@@ -528,13 +719,20 @@ async def run_file_generation(
 
     # Determine tools available for this run
     use_3d_assets = tripo is not None and spec.perspective == "3D"
-    tools = AGENT_TOOLS_BASE + ([GENERATE_3D_ASSET_TOOL] if use_3d_assets else [])
+    use_2d_assets = image_gen is not None and spec.perspective == "2D"
+    tools = AGENT_TOOLS_BASE[:]
+    if use_2d_assets:
+        tools.append(GENERATE_2D_ASSET_TOOL)
+    if use_3d_assets:
+        tools.append(GENERATE_3D_ASSET_TOOL)
 
     # Build initial messages — use fix_context if provided (targeted fix iteration)
     if fix_context is not None:
         initial_content = fix_context
     else:
-        initial_content = _build_initial_prompt(spec, has_3d_assets=use_3d_assets)
+        initial_content = _build_initial_prompt(
+            spec, has_3d_assets=use_3d_assets, has_2d_assets=use_2d_assets,
+        )
     messages: list[dict] = [{"role": "user", "content": initial_content}]
 
     for turn in range(MAX_TURNS_PER_ITERATION):
@@ -551,14 +749,16 @@ async def run_file_generation(
                 }
             ]
 
-        response = await client.messages.create(
+        api_kwargs: dict = dict(
             model=GENERATOR_MODEL,
-            max_tokens=8192,
+            max_tokens=16384 if thinking else 8192,
             system=build_generator_system_prompt(spec.perspective),
             tools=tools,
-            # thinking={"type": "adaptive"},
             messages=messages,
         )
+        if thinking:
+            api_kwargs["thinking"] = {"type": "enabled", "budget_tokens": 8192}
+        response = await client.messages.create(**api_kwargs)
 
         # Append assistant turn with full content list
         messages.append({"role": "assistant", "content": response.content})
@@ -571,13 +771,14 @@ async def run_file_generation(
         tool_results = []
         for block in response.content:
             if block.type == "tool_use":
-                # Emit a stage event before 3D asset generation (takes 30-60s)
-                if block.name == "generate_3d_asset":
+                # Emit a stage event before asset generation (takes 10-60s)
+                if block.name in ("generate_3d_asset", "generate_2d_asset"):
                     asset_name = block.input.get("asset_name", "unknown")
+                    dim = "3D" if block.name == "generate_3d_asset" else "2D"
                     await emit(
                         ProgressEvent(
                             type="stage_start",
-                            message=f"Generating 3D asset: {asset_name}...",
+                            message=f"Generating {dim} asset: {asset_name}...",
                         )
                     )
 
@@ -587,6 +788,7 @@ async def run_file_generation(
                     game_dir,
                     generated_files,
                     tripo=tripo,
+                    image_gen=image_gen,
                     asset_counter=asset_counter,
                 )
                 tool_results.append(
@@ -597,12 +799,13 @@ async def run_file_generation(
                     }
                 )
                 # Emit progress for asset generation calls
-                if block.name == "generate_3d_asset":
+                if block.name in ("generate_3d_asset", "generate_2d_asset"):
                     asset_name = block.input.get("asset_name", "unknown")
+                    dim = "3D" if block.name == "generate_3d_asset" else "2D"
                     await emit(
                         ProgressEvent(
                             type="asset_generated",
-                            message=f"Generated 3D asset: {asset_name}",
+                            message=f"Generated {dim} asset: {asset_name}",
                             data={"asset_name": asset_name},
                         )
                     )

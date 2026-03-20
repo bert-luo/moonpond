@@ -96,10 +96,16 @@ async def generate(
 
     soft_timeout = SoftTimeout(SOFT_TIMEOUT_S)
 
+    # Build pipeline instance — pass thinking flag for AgenticPipeline
+    init_kwargs: dict = {}
+    if pipeline == "agentic" and req.thinking:
+        init_kwargs["thinking"] = True
+    pipeline_instance = pipeline_cls(**init_kwargs)
+
     async def run_pipeline():
         soft_timeout.start()
         try:
-            await pipeline_cls().generate(
+            await pipeline_instance.generate(
                 req.prompt,
                 job_id,
                 emit,
