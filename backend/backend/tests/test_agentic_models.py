@@ -13,7 +13,7 @@ from backend.pipelines.agentic.models import (
     VerifierError,
     VerifierResult,
 )
-from backend.pipelines.agentic.spec_generator import run_spec_generator
+from backend.pipelines.agentic.spec_generator import run_spec_generator, SUBMIT_SPEC_TOOL
 from backend.pipelines.base import ProgressEvent
 
 # ---------------------------------------------------------------------------
@@ -53,6 +53,26 @@ class TestAgenticGameSpec:
         incomplete = {"title": "Test", "genre": "puzzle"}
         with pytest.raises(ValidationError):
             AgenticGameSpec.model_validate(incomplete)
+
+    def test_perspective_defaults_to_2d(self):
+        spec = AgenticGameSpec.model_validate(VALID_SPEC_DICT)
+        assert spec.perspective == "2D"
+
+    def test_perspective_accepts_3d(self):
+        data = {**VALID_SPEC_DICT, "perspective": "3D"}
+        spec = AgenticGameSpec.model_validate(data)
+        assert spec.perspective == "3D"
+
+    def test_perspective_rejects_invalid(self):
+        data = {**VALID_SPEC_DICT, "perspective": "isometric"}
+        with pytest.raises(ValidationError):
+            AgenticGameSpec.model_validate(data)
+
+    def test_submit_spec_tool_includes_perspective(self):
+        props = SUBMIT_SPEC_TOOL["input_schema"]["properties"]
+        assert "perspective" in props
+        assert props["perspective"]["enum"] == ["2D", "3D"]
+        assert "perspective" in SUBMIT_SPEC_TOOL["input_schema"]["required"]
 
 
 # ---------------------------------------------------------------------------

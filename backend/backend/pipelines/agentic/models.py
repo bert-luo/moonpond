@@ -27,6 +27,7 @@ class AgenticGameSpec(BaseModel):
     scene_description: str
     win_condition: str
     fail_condition: str
+    perspective: Literal["2D", "3D"] = "2D"
 
 
 class VerifierError(BaseModel):

@@ -28,6 +28,7 @@ Your job:
 - Identify all game entities needed (player, enemies, projectiles, platforms, \
 items, UI elements, etc.) with their Godot node types and behaviors.
 - Describe the scene layout and visual structure.
+- Determine whether the game is 2D or 3D based on the concept.
 - Specify win and fail conditions.
 
 Call the submit_spec tool with your game specification.\
@@ -63,7 +64,7 @@ SUBMIT_SPEC_TOOL = {
                         },
                         "type": {
                             "type": "string",
-                            "description": "Godot node type (CharacterBody2D, Area2D, etc.).",
+                            "description": "Godot node type — use 2D types (CharacterBody2D, Area2D, StaticBody2D) for 2D games or 3D types (CharacterBody3D, Area3D, Node3D, Camera3D, MeshInstance3D) for 3D games.",
                         },
                         "behavior": {
                             "type": "string",
@@ -85,6 +86,11 @@ SUBMIT_SPEC_TOOL = {
                 "type": "string",
                 "description": "How the player loses.",
             },
+            "perspective": {
+                "type": "string",
+                "enum": ["2D", "3D"],
+                "description": "Whether this is a 2D or 3D game.",
+            },
         },
         "required": [
             "title",
@@ -94,6 +100,7 @@ SUBMIT_SPEC_TOOL = {
             "scene_description",
             "win_condition",
             "fail_condition",
+            "perspective",
         ],
     },
 }
