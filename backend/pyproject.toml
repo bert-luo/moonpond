@@ -7,6 +7,9 @@ dependencies = [
     "aiofiles",
     "anthropic>=0.84.0",
     "python-dotenv>=1.0.0",
+    "openai>=2.29.0",
+    "pillow>=12.1.1",
+    "matplotlib>=3.10.8",
 ]
 
 [project.optional-dependencies]
