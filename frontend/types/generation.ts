@@ -177,12 +177,14 @@ export function generationReducer(
           messages: [
             ...s.messages,
             { id: crypto.randomUUID(), type: 'complete' as const, text: 'Your game is ready!' },
-            {
-              id: crypto.randomUUID(),
-              type: 'controls' as const,
-              text: 'Controls',
-              data: { controls: action.controls },
-            },
+            ...(action.controls.length > 0
+              ? [{
+                  id: crypto.randomUUID(),
+                  type: 'controls' as const,
+                  text: 'Controls',
+                  data: { controls: action.controls },
+                }]
+              : []),
           ],
         })),
       };
