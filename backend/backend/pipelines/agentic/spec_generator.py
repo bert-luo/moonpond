@@ -140,4 +140,14 @@ async def run_spec_generator(
     tool_block = next(b for b in response.content if b.type == "tool_use")
     result = AgenticGameSpec.model_validate(tool_block.input)
 
+    await emit(ProgressEvent(
+        type="spec_complete",
+        message=f"Spec: {result.title}",
+        data={
+            "title": result.title,
+            "description": result.scene_description,
+            "genre": result.genre,
+        },
+    ))
+
     return result

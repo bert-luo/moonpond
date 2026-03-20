@@ -449,7 +449,7 @@ async def run_file_generation(
                         ProgressEvent(
                             type="file_generated",
                             message=f"Generated {filename}",
-                            data={"filename": filename},
+                            data={"filename": filename, "size_bytes": len(block.input.get("content", "").encode("utf-8"))},
                         )
                     )
 

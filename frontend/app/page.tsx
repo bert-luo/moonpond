@@ -18,7 +18,7 @@ export default function Home() {
     <main className="flex h-screen">
       {/* ChatPanel: fixed width sidebar on the left */}
       <div className="w-[420px] min-w-[320px] flex-shrink-0 flex flex-col border-r border-[var(--color-border)] bg-[var(--color-bg)]">
-        <ChatPanel state={activeSession} onSubmit={submit} onReset={handleReset} />
+        <ChatPanel state={activeSession} onSubmit={(prompt) => submit(prompt, activeSession.id)} onReset={handleReset} />
       </div>
       {/* GameViewer: fills remaining space — the hero */}
       <div className="flex-1 flex items-center justify-center p-6 bg-black/20">

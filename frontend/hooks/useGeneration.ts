@@ -8,17 +8,19 @@ const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000';
 /**
  * SSE client hook that orchestrates the fetch + EventSource lifecycle.
  * Receives a dispatch function and returns { submit }.
+ * submit(prompt, sessionId) captures the sessionId so all SSE dispatches
+ * target the correct session.
  */
 export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
   const esRef = useRef<EventSource | null>(null);
 
   const submit = useCallback(
-    async (prompt: string) => {
+    async (prompt: string, sessionId: string) => {
       // Close previous connection if any
       esRef.current?.close();
       esRef.current = null;
 
-      dispatch({ type: 'SUBMIT' });
+      dispatch({ type: 'SUBMIT', sessionId });
 
       // Step 1: POST to start generation
       let jobId: string;
@@ -30,7 +32,7 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
         });
         if (!res.ok) {
           const text = await res.text().catch(() => res.statusText);
-          dispatch({ type: 'SSE_ERROR', message: `Server error: ${text}` });
+          dispatch({ type: 'SSE_ERROR', sessionId, message: `Server error: ${text}` });
           return;
         }
         const body = await res.json();
@@ -38,6 +40,7 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
       } catch (err) {
         dispatch({
           type: 'SSE_ERROR',
+          sessionId,
           message: err instanceof Error ? err.message : 'Network error',
         });
         return;
@@ -52,10 +55,30 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
         const me = e as MessageEvent;
         try {
           const event = JSON.parse(me.data);
-          dispatch({ type: 'SSE_STAGE', message: event.message });
+          dispatch({ type: 'SSE_STAGE', sessionId, message: event.message });
         } catch {
-          dispatch({ type: 'SSE_STAGE', message: me.data });
+          dispatch({ type: 'SSE_STAGE', sessionId, message: me.data });
         }
+      });
+
+      // Named event: spec_complete
+      es.addEventListener('spec_complete', (e: Event) => {
+        const me = e as MessageEvent;
+        try {
+          const event = JSON.parse(me.data);
+          const d = event.data ?? {};
+          dispatch({ type: 'SSE_SPEC_COMPLETE', sessionId, title: d.title ?? '', description: d.description ?? '' });
+        } catch { /* ignore parse errors */ }
+      });
+
+      // Named event: file_generated
+      es.addEventListener('file_generated', (e: Event) => {
+        const me = e as MessageEvent;
+        try {
+          const event = JSON.parse(me.data);
+          const d = event.data ?? {};
+          dispatch({ type: 'SSE_FILE_WRITTEN', sessionId, filename: d.filename ?? 'unknown', bytes: d.size_bytes ?? 0 });
+        } catch { /* ignore parse errors */ }
       });
 
       // Named event: done
@@ -75,11 +98,11 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
           const controls: ControlMapping[] = Array.isArray(data.controls)
             ? data.controls
             : [];
-          dispatch({ type: 'SSE_DONE', gameUrl, controls });
+          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, controls });
         } catch {
           // Fallback if parsing fails
           const gameUrl = `${BACKEND}/games/${jobId}/export/index.html`;
-          dispatch({ type: 'SSE_DONE', gameUrl, controls: [] });
+          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, controls: [] });
         }
       });
 
@@ -92,9 +115,9 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
         if (me.data !== undefined) {
           try {
             const event = JSON.parse(me.data);
-            dispatch({ type: 'SSE_ERROR', message: event.message ?? 'Unknown error' });
+            dispatch({ type: 'SSE_ERROR', sessionId, message: event.message ?? 'Unknown error' });
           } catch {
-            dispatch({ type: 'SSE_ERROR', message: me.data ?? 'Unknown error' });
+            dispatch({ type: 'SSE_ERROR', sessionId, message: me.data ?? 'Unknown error' });
           }
           es.close();
           esRef.current = null;
@@ -106,7 +129,7 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
       es.onerror = () => {
         // Only dispatch if connection is actually failing (not already closed)
         if (esRef.current === es) {
-          dispatch({ type: 'SSE_ERROR', message: 'Connection lost' });
+          dispatch({ type: 'SSE_ERROR', sessionId, message: 'Connection lost' });
           es.close();
           esRef.current = null;
         }
