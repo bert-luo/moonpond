@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Completed 08-02-PLAN.md
-last_updated: "2026-03-19T23:03:27.998Z"
-last_activity: 2026-03-19 — Completed 08-02-PLAN.md
+status: in-progress
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-03-20T08:11:16Z"
+last_activity: 2026-03-20 — Completed 09-01-PLAN.md
 progress:
-  total_phases: 12
+  total_phases: 13
   completed_phases: 9
-  total_plans: 31
-  completed_plans: 28
+  total_plans: 33
+  completed_plans: 29
   percent: 90
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-13)
 
 **Core value:** Generated games must look and feel intentional — shaders, palettes, and particles applied by design, not bare functional code that happens to run
-**Current focus:** Phase 8 — Agentic Template Decoupling
+**Current focus:** Phase 9 — Add 3D Game Generation Support to Agentic Pipeline
 
 ## Current Position
 
-Phase: 8 of 8 (Agentic Template Decoupling)
-Plan: 2 of 2 in current phase
-Status: Completed
-Last activity: 2026-03-19 — Completed 08-02-PLAN.md
+Phase: 9 of 9 (Add 3D Game Generation Support)
+Plan: 1 of 2 in current phase
+Status: In Progress
+Last activity: 2026-03-20 — Completed 09-01-PLAN.md
 
-Progress: [██████████] 90%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [██████████] 90%
 | Phase 07 P03 | 8min | 2 tasks | 5 files |
 | Phase 08 P01 | 11min | 2 tasks | 6 files |
 | Phase 08 P02 | 12min | 1 tasks | 2 files |
+| Phase 09 P01 | 1min | 2 tasks | 45 files |
 
 ## Accumulated Context
 
@@ -146,6 +147,9 @@ Recent decisions affecting current work:
 - [Phase 08]: Regex section isolation for [input] parsing -- same pattern as wiring_generator.py
 - [Phase 08]: _build_asset_section() generates prompt text from imported constants -- no hardcoded paths in prompt
 - [Phase 08]: expand_input_map called after generate-verify-fix loop, before export -- expanded content written to both all_files dict and disk
+- [Phase 09]: perspective field defaults to '2D' for full backward compatibility with existing specs
+- [Phase 09]: glow and chromatic_aberration shaders included in 3D template (canvas_item, usable on CanvasLayer/UI overlays)
+- [Phase 09]: control_snippets excluded from 3D template (Node2D scripts, not applicable to 3D)
 
 ### Roadmap Evolution
 
@@ -157,6 +161,7 @@ Recent decisions affecting current work:
 - Phase 6 added: Programmatic TSCN generation and display configuration
 - Phase 7 added: Agentic Pipeline — lightweight agent-loop pipeline with spec generation, todo-driven iterative file generation, and verifier agent
 - Phase 8 added: Agentic template decoupling — slim template to essentials, let LLM generate project.godot with autoloads/input maps, surface asset paths in prompt
+- Phase 9 added: Add 3D game generation support to agentic pipeline
 
 ### Pending Todos
 
@@ -169,6 +174,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T22:59:14Z
-Stopped at: Completed 08-02-PLAN.md
+Last session: 2026-03-20T08:11:16Z
+Stopped at: Completed 09-01-PLAN.md
 Resume file: None
