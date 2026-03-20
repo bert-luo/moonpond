@@ -129,12 +129,12 @@ export function ChatPanel({ session, onSubmit, onReset }: ChatPanelProps) {
           onFocus={handleFocus}
           placeholder="Describe a game... e.g. A space shooter where you dodge asteroids"
           disabled={session.status === 'generating'}
-          className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50 transition-colors"
+          className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm font-light tracking-wide text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50 transition-colors"
         />
         <button
           type="submit"
           disabled={session.status === 'generating' || !prompt.trim()}
-          className="bg-[var(--color-accent)] text-white font-medium px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
+          className="bg-[var(--color-accent)] text-white font-light tracking-wide px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
         >
           {session.status === 'generating' ? 'Generating...' : 'Generate'}
         </button>

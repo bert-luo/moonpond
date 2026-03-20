@@ -17,7 +17,7 @@ export function GameTabs({ sessions, activeIdx, onSelect, onNew }: GameTabsProps
           key={session.id}
           type="button"
           onClick={() => onSelect(idx)}
-          className={`px-4 py-2.5 text-sm whitespace-nowrap flex-shrink-0 transition-colors ${
+          className={`px-4 py-2.5 text-sm font-light tracking-wide whitespace-nowrap flex-shrink-0 transition-colors ${
             idx === activeIdx
               ? 'bg-[var(--color-surface)] border-b-2 border-[var(--color-accent)] text-[var(--color-text)]'
               : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'

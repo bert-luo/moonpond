@@ -12,6 +12,7 @@ const EXAMPLE_PROMPTS = [
   'A platformer with bouncing slimes',
   'A puzzle game with sliding tiles',
   'A racing game through neon tunnels',
+  'tower defense with cats and dogs',
 ];
 
 export function LandingPage({ onSubmit, isGenerating }: LandingPageProps) {
@@ -45,13 +46,13 @@ export function LandingPage({ onSubmit, isGenerating }: LandingPageProps) {
         {/* Title */}
         <div className="text-center">
           <h1
-            className="text-4xl font-bold text-[var(--color-accent)]"
+            className="text-5xl font-light tracking-tight text-[var(--color-accent)]"
             style={{ textShadow: '0 0 30px var(--color-glow)' }}
           >
             Moonpond
           </h1>
-          <p className="text-[var(--color-text-muted)] mt-2 text-lg">
-            Generate playable games from text
+          <p className="text-[var(--color-text-muted)] mt-3 text-base font-light tracking-wide">
+            Generate playable worlds from text
           </p>
         </div>
 
@@ -64,12 +65,12 @@ export function LandingPage({ onSubmit, isGenerating }: LandingPageProps) {
               onChange={(e) => setPrompt(e.target.value)}
               placeholder=""
               disabled={isGenerating}
-              className="w-full bg-white/5 backdrop-blur-sm border border-[var(--color-border)] rounded-xl px-5 py-4 text-lg text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50 transition-colors"
+              className="w-full bg-white/5 backdrop-blur-sm border border-[var(--color-border)] rounded-xl px-5 py-4 text-base font-light tracking-wide text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50 transition-colors"
             />
             {/* Carousel placeholder */}
             {!prompt && (
               <span
-                className={`absolute left-5 top-1/2 -translate-y-1/2 text-lg text-[var(--color-text-muted)] pointer-events-none transition-opacity duration-300 ${fade ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute left-5 top-1/2 -translate-y-1/2 text-base font-light tracking-wide text-[var(--color-text-muted)] pointer-events-none transition-opacity duration-300 ${fade ? 'opacity-100' : 'opacity-0'}`}
               >
                 {EXAMPLE_PROMPTS[placeholderIdx]}
               </span>
@@ -79,7 +80,7 @@ export function LandingPage({ onSubmit, isGenerating }: LandingPageProps) {
           <button
             type="submit"
             disabled={isGenerating || !prompt.trim()}
-            className="bg-[var(--color-accent)] text-white font-medium px-8 py-3 rounded-xl text-base hover:opacity-90 disabled:opacity-40 transition-opacity"
+            className="bg-[var(--color-accent)] text-white font-light tracking-wide px-8 py-3 rounded-xl text-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
           >
             {isGenerating ? 'Generating...' : 'Generate Game'}
           </button>
