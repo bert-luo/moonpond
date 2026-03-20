@@ -131,16 +131,29 @@ async def _dispatch_tool(
 # System prompt
 # ---------------------------------------------------------------------------
 
-def _build_asset_section() -> str:
-    """Build the available-assets block from imported constants."""
+
+def _build_asset_section(perspective: str = "2D") -> str:
+    """Build the available-assets block from imported constants.
+
+    Args:
+        perspective: "2D" or "3D". Controls shader annotation and
+            control snippet inclusion.
+    """
     lines = ["AVAILABLE ASSETS (use these instead of generating placeholders):"]
 
-    lines.append("Shaders (apply via ShaderMaterial):")
+    if perspective == "3D":
+        lines.append(
+            "Shaders (apply to CanvasLayer or UI elements — NOT to 3D mesh materials):"
+        )
+    else:
+        lines.append("Shaders (apply via ShaderMaterial):")
     for name, path in SHADER_PATHS.items():
         lines.append(f"  {name}: {path}")
 
     lines.append("")
-    lines.append("Palettes (Gradient resources, sample via GameManager.get_palette_color(t)):")
+    lines.append(
+        "Palettes (Gradient resources, sample via GameManager.get_palette_color(t)):"
+    )
     for name, path in PALETTE_PATHS.items():
         lines.append(f"  {name}: {path}")
 
@@ -149,17 +162,83 @@ def _build_asset_section() -> str:
     for name, path in PARTICLE_PATHS.items():
         lines.append(f"  {name}: {path}")
 
-    lines.append("")
-    lines.append("Control snippets (attach as script to any Node2D):")
-    for name, path in CONTROL_SNIPPET_PATHS.items():
-        lines.append(f"  {name}: {path}")
+    if perspective == "2D":
+        lines.append("")
+        lines.append("Control snippets (attach as script to any Node2D):")
+        for name, path in CONTROL_SNIPPET_PATHS.items():
+            lines.append(f"  {name}: {path}")
+    else:
+        lines.append("")
+        lines.append("Control snippets (2D only, not applicable to 3D games):")
 
     return "\n".join(lines)
 
 
-GENERATOR_SYSTEM_PROMPT = """\
-You are an expert Godot 4 game developer. Your job is to generate all files \
-for a complete, playable 2D game project one at a time by calling write_file.
+def build_generator_system_prompt(perspective: str = "2D") -> str:
+    """Build the file-generator system prompt, branching on perspective.
+
+    Args:
+        perspective: "2D" or "3D".
+
+    Returns:
+        The full system prompt string for the file-generation agent.
+    """
+    dim = perspective  # "2D" or "3D"
+
+    # Mission statement
+    mission = (
+        f"You are an expert Godot 4 game developer. Your job is to generate all files "
+        f"for a complete, playable {dim} game project one at a time by calling write_file."
+    )
+
+    # Entity node types
+    if perspective == "3D":
+        entity_types = "(Node3D, CharacterBody3D, Area3D, MeshInstance3D, Camera3D, DirectionalLight3D, etc.)"
+    else:
+        entity_types = "(Node2D, CharacterBody2D, Area2D, etc.)"
+
+    # Main scene root
+    if perspective == "3D":
+        root_node = "The main scene is always Main.tscn with a root Node3D."
+    else:
+        root_node = "The main scene is always Main.tscn with a root Node2D."
+
+    # Display config
+    if perspective == "3D":
+        display_section = (
+            "[display]\n"
+            "window/size/viewport_width=1152\n"
+            "window/size/viewport_height=648\n"
+            'window/stretch/mode="disabled"'
+        )
+    else:
+        display_section = (
+            "[display]\n"
+            "window/size/viewport_width=1152\n"
+            "window/size/viewport_height=648\n"
+            'window/stretch/mode="canvas_items"\n'
+            'window/stretch/aspect="expand"'
+        )
+
+    # 3D essentials (only for 3D)
+    essentials_3d = ""
+    if perspective == "3D":
+        essentials_3d = """
+3D ESSENTIALS — every 3D game MUST include:
+- A Camera3D node in the main scene (without one, the screen is blank)
+- At least one light source (DirectionalLight3D or OmniLight3D) — without lighting, everything renders black
+- Use Vector3 for all positions and velocities (NOT Vector2)
+- Use move_and_slide() on CharacterBody3D the same way as 2D, but with 3D vectors
+- For simple visuals without imported models, use MeshInstance3D with built-in meshes:
+  BoxMesh, SphereMesh, CapsuleMesh, CylinderMesh, PlaneMesh, QuadMesh
+  Example: var mesh_instance = MeshInstance3D.new(); mesh_instance.mesh = BoxMesh.new()
+- Set up a WorldEnvironment node with an Environment resource for ambient light and sky
+
+"""
+
+    prompt = (
+        f"""\
+{mission}
 
 TARGET ENGINE: Godot 4.5.1. You MUST generate code compatible with Godot 4.5.
 
@@ -202,11 +281,11 @@ typed variables with "var x: Type", super() instead of .func(), etc.
 [sub_resource], and [node] sections. Use type="Script" for GDScript ext_resources.
 - Each write_file call should contain a COMPLETE file — never partial content.
 - Use read_file to inspect previously written files when generating dependent files.
-- When all files are complete and the game is ready to play, STOP calling tools. \
+- When all files are complete, spec is satisfied, and the game is ready to play, STOP calling tools. \
 Simply respond with a text summary of what you built.
-- All entity scripts should extend appropriate Godot node types (Node2D, CharacterBody2D, Area2D, etc.).
+- All entity scripts should extend appropriate Godot node types {entity_types}.
 - Connect signals in _ready() using connect() — do NOT rely on editor signal connections.
-- The main scene is always Main.tscn with a root Node2D.
+- {root_node}
 - You MUST generate every script file that you register as an autoload in project.godot.
 
 PROJECT.GODOT — when generating project.godot, ALWAYS include these sections verbatim:
@@ -215,11 +294,7 @@ PROJECT.GODOT — when generating project.godot, ALWAYS include these sections v
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
 
-[display]
-window/size/viewport_width=1152
-window/size/viewport_height=648
-window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
+{display_section}
 
 For [autoload], list every singleton script you generate, e.g.:
 [autoload]
@@ -234,7 +309,16 @@ shoot=z
 (Supported keys: arrow_left, arrow_right, arrow_up, arrow_down, \
 space, enter, escape, shift, ctrl, tab, backspace, a-z, 0-9, f1-f12)
 
-""" + _build_asset_section() + "\n"
+"""
+        + essentials_3d
+        + _build_asset_section(perspective)
+        + "\n"
+    )
+    return prompt
+
+
+# Backward-compatible module-level constant (equals 2D prompt)
+GENERATOR_SYSTEM_PROMPT = build_generator_system_prompt("2D")
 
 
 # ---------------------------------------------------------------------------
@@ -254,14 +338,20 @@ def _build_initial_prompt(spec: AgenticGameSpec) -> str:
     )
 
 
-def _build_stateless_prompt(spec: AgenticGameSpec, existing_files: dict[str, str]) -> str:
+def _build_stateless_prompt(
+    spec: AgenticGameSpec, existing_files: dict[str, str]
+) -> str:
     """Build a fresh prompt listing spec and existing file names.
 
     In stateless mode, each turn starts fresh. The prompt includes the spec
     and existing file names (not contents — agent uses read_file for that).
     """
     spec_json = json.dumps(spec.model_dump(), indent=2)
-    file_list = "\n".join(f"  - {f}" for f in existing_files) if existing_files else "  (none yet)"
+    file_list = (
+        "\n".join(f"  - {f}" for f in existing_files)
+        if existing_files
+        else "  (none yet)"
+    )
     return (
         f"You are generating files for a Godot 4 game project.\n\n"
         f"Game Specification:\n{spec_json}\n\n"
@@ -313,12 +403,17 @@ async def run_file_generation(
     for turn in range(MAX_TURNS_PER_ITERATION):
         # In stateless mode, reset messages each turn (after first)
         if context_strategy == "stateless" and turn > 0:
-            messages = [{"role": "user", "content": _build_stateless_prompt(spec, generated_files)}]
+            messages = [
+                {
+                    "role": "user",
+                    "content": _build_stateless_prompt(spec, generated_files),
+                }
+            ]
 
         response = await client.messages.create(
             model=GENERATOR_MODEL,
             max_tokens=8192,
-            system=GENERATOR_SYSTEM_PROMPT,
+            system=build_generator_system_prompt(spec.perspective),
             tools=AGENT_TOOLS,
             messages=messages,
         )
@@ -337,19 +432,23 @@ async def run_file_generation(
                 result_str = await _dispatch_tool(
                     block.name, block.input, game_dir, generated_files
                 )
-                tool_results.append({
-                    "type": "tool_result",
-                    "tool_use_id": block.id,
-                    "content": result_str,
-                })
+                tool_results.append(
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": result_str,
+                    }
+                )
                 # Emit progress for write_file calls
                 if block.name == "write_file":
                     filename = block.input.get("filename", "unknown")
-                    await emit(ProgressEvent(
-                        type="file_generated",
-                        message=f"Generated {filename}",
-                        data={"filename": filename},
-                    ))
+                    await emit(
+                        ProgressEvent(
+                            type="file_generated",
+                            message=f"Generated {filename}",
+                            data={"filename": filename},
+                        )
+                    )
 
         # Defensive: no tool results means nothing to continue with
         if not tool_results:

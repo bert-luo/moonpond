@@ -9,8 +9,23 @@ from backend.godot.runner import run_headless_export
 from backend.pipelines.base import EmitFn, GameResult, ProgressEvent
 
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent  # pipelines -> backend -> backend -> repo root
-TEMPLATE_DIR = _REPO_ROOT / "godot" / "templates" / "base_2d"
+TEMPLATE_DIR_2D = _REPO_ROOT / "godot" / "templates" / "base_2d"
+TEMPLATE_DIR_3D = _REPO_ROOT / "godot" / "templates" / "base_3d"
 GAMES_DIR = _REPO_ROOT / "games"
+
+
+def get_template_dir(perspective: str) -> Path:
+    """Return the template directory for the given perspective.
+
+    Args:
+        perspective: "2D" or "3D".
+
+    Returns:
+        Path to the appropriate base template directory.
+    """
+    if perspective == "3D":
+        return TEMPLATE_DIR_3D
+    return TEMPLATE_DIR_2D
 
 
 async def run_exporter(
@@ -18,6 +33,8 @@ async def run_exporter(
     files: dict[str, str],
     controls: list[dict],
     emit: EmitFn,
+    *,
+    perspective: str = "2D",
 ) -> GameResult:
     """Assemble a Godot project from generated scripts and export to WASM.
 
@@ -41,7 +58,7 @@ async def run_exporter(
     export_dir = GAMES_DIR / game_dir / "export"
 
     # Copy the base template (dirs_exist_ok=True per Pitfall 6)
-    shutil.copytree(TEMPLATE_DIR, project_dir, dirs_exist_ok=True)
+    shutil.copytree(get_template_dir(perspective), project_dir, dirs_exist_ok=True)
 
     # Write generated files into the project
     # .tscn and .gd files go to project root (matching res:// paths in generated code)

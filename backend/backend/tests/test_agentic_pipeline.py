@@ -436,7 +436,7 @@ class TestAgenticPipelineGenerate:
 
         file_gen_calls = []
 
-        async def mock_file_gen(client, spec, game_dir, emit_fn, *, context_strategy="full_history", fix_context=None):
+        async def mock_file_gen(client, spec, game_dir, emit_fn, *, context_strategy="full_history", fix_context=None, existing_files=None):
             file_gen_calls.append({"fix_context": fix_context})
             conversation = [{"role": "user", "content": "test"}]
             if fix_context is None:
@@ -489,7 +489,7 @@ class TestAgenticPipelineGenerate:
 
         captured_export_files = {}
 
-        async def capture_exporter(game_dir, files, controls, emit_fn):
+        async def capture_exporter(game_dir, files, controls, emit_fn, *, perspective="2D"):
             captured_export_files.update(files)
             return mock_game_result
 

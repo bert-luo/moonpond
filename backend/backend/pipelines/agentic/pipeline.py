@@ -252,6 +252,7 @@ class AgenticPipeline:
                 all_files,
                 [],  # controls=[] for agentic pipeline
                 emit,
+                perspective=spec.perspective,
             )
 
             await emit(
