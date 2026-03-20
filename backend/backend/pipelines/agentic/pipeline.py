@@ -225,25 +225,9 @@ class AgenticPipeline:
                 # Merge new/updated files into the running set
                 all_files.update(new_files)
 
-                # Soft timeout: skip verification, proceed to export
-                if soft_timeout and soft_timeout.is_expired:
-                    await emit(
-                        ProgressEvent(
-                            type="stage_start",
-                            message="Soft timeout reached — skipping verification, proceeding to build...",
-                        )
-                    )
-                    # Still save artifacts before breaking
-                    if dump_dir:
-                        iter_dir = dump_dir / f"iteration_{iteration}"
-                        files_dir = iter_dir / "files"
-                        files_dir.mkdir(parents=True, exist_ok=True)
-                        for fname, content in all_files.items():
-                            (files_dir / fname).write_text(content)
-                        (iter_dir / "conversation.json").write_text(
-                            json.dumps(_serialize_messages(conversation), indent=2)
-                        )
-                    break
+                # NOTE: No soft timeout check here — always run verification
+                # after a generation iteration completes. Verification is a
+                # single fast LLM call and ensures we know the final state.
 
                 # Save iteration artifacts
                 if dump_dir:

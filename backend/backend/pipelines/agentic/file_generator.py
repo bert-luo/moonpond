@@ -538,10 +538,9 @@ async def run_file_generation(
     messages: list[dict] = [{"role": "user", "content": initial_content}]
 
     for turn in range(MAX_TURNS_PER_ITERATION):
-        # Soft timeout: stop generating more files after current turn completes
-        if soft_timeout and soft_timeout.is_expired:
-            logger.info("Soft timeout expired at turn %d — exiting file generation", turn)
-            break
+        # NOTE: No soft timeout check here — once a file generation iteration
+        # starts, it runs to completion so the LLM can finish all its fixes.
+        # The soft timeout is checked at the pipeline level between iterations.
 
         # In stateless mode, reset messages each turn (after first)
         if context_strategy == "stateless" and turn > 0:
