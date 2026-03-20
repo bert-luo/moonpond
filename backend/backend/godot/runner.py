@@ -15,11 +15,23 @@ from pathlib import Path
 from subprocess import DEVNULL, PIPE
 
 
-# Resolve GODOT_BIN: env var override, else relative to repo root
+# Resolve GODOT_BIN: env var override, else platform-appropriate default
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent  # backend/backend/godot -> repo root
-_DEFAULT_GODOT = _REPO_ROOT / "godot" / "Godot.app" / "Contents" / "MacOS" / "Godot"
+_MACOS_GODOT = _REPO_ROOT / "godot" / "Godot.app" / "Contents" / "MacOS" / "Godot"
+_LINUX_GODOT = Path("/usr/local/bin/godot")
 
-GODOT_BIN: str = os.environ.get("GODOT_BIN", str(_DEFAULT_GODOT))
+
+def _default_godot_bin() -> str:
+    """Return the best default Godot binary path for the current platform."""
+    if _MACOS_GODOT.exists():
+        return str(_MACOS_GODOT)
+    if _LINUX_GODOT.exists():
+        return str(_LINUX_GODOT)
+    # Fallback to macOS path (original behaviour)
+    return str(_MACOS_GODOT)
+
+
+GODOT_BIN: str = os.environ.get("GODOT_BIN", _default_godot_bin())
 """Path to the Godot editor binary."""
 
 
