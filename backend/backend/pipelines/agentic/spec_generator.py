@@ -31,6 +31,10 @@ items, UI elements, etc.) with their Godot node types and behaviors.
 - Determine whether the game is 2D or 3D based on the concept.
 - Specify win and fail conditions.
 
+IMPORTANT: Do NOT include audio, sound effects, or music in the spec. \
+The pipeline has no audio asset support. Do not create AudioManager or \
+any sound-related entities.
+
 Call the submit_spec tool with your game specification.\
 """
 

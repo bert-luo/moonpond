@@ -287,6 +287,9 @@ Simply respond with a text summary of what you built.
 - Connect signals in _ready() using connect() — do NOT rely on editor signal connections.
 - {root_node}
 - You MUST generate every script file that you register as an autoload in project.godot.
+- Do NOT generate audio, sound effects, or music. No AudioStreamPlayer, AudioStreamWAV, \
+AudioStreamGenerator, or AudioManager. The pipeline has no audio asset support — audio \
+code wastes tokens and may cause runtime errors.
 
 PROJECT.GODOT — when generating project.godot, ALWAYS include these sections verbatim:
 
