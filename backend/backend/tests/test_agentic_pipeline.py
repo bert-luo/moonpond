@@ -543,3 +543,26 @@ class TestAgenticPipelineGenerate:
         assert result is mock_game_result
         # expand_input_map should NOT have been called
         mock_expand.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Exporter template selection tests
+# ---------------------------------------------------------------------------
+
+from backend.pipelines.exporter import get_template_dir, TEMPLATE_DIR_2D, TEMPLATE_DIR_3D
+
+
+class TestGetTemplateDir:
+    def test_get_template_dir_2d(self):
+        result = get_template_dir("2D")
+        assert result == TEMPLATE_DIR_2D
+        assert result.name == "base_2d"
+
+    def test_get_template_dir_3d(self):
+        result = get_template_dir("3D")
+        assert result == TEMPLATE_DIR_3D
+        assert result.name == "base_3d"
+
+    def test_get_template_dir_default(self):
+        """2D is the default path — same as TEMPLATE_DIR_2D."""
+        assert get_template_dir("2D") == TEMPLATE_DIR_2D
