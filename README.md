@@ -1,16 +1,18 @@
 # moonpond
 
-AI-powered Godot game generator. Describe a game in natural language, and Moonpond generates a playable browser game using Godot 4 + WebAssembly.
+AI-powered Godot game generator. Describe a game in natural language, and Moonpond generates a playable browser game using Godot 4 + WebAssembly. Supports both 2D and 3D games with AI-generated visual assets (sprites, 3D models).
 
 ## Running the Backend Locally
 
 ### Prerequisites
 
 - Python 3.12+ and [uv](https://docs.astral.sh/uv/)
-- Godot 4.5+ (for WASM export)
+- Godot 4.5.1 (for WASM export)
 - A `.env` file in the project root with your API keys:
   ```
-  ANTHROPIC_API_KEY=sk-moo-...
+  ANTHROPIC_API_KEY=...          # Required — all LLM calls
+  OPENAI_API_KEY=...             # Recommended — 2D sprite generation (OpenAI gpt-image-1)
+  TRIPO_API_KEY=...              # Recommended — 3D model generation (Tripo API)
   ```
 
 ### Start
@@ -58,10 +60,7 @@ npm test
 ### Prerequisites
 
 - [Docker](https://www.docker.com/products/docker-desktop/) installed and running
-- A `.env` file in the project root with your API keys:
-  ```
-  ANTHROPIC_API_KEY=sk-moo-...
-  ```
+- A `.env` file in the project root with your API keys (see above)
 
 ### Build
 
@@ -97,3 +96,22 @@ If you change backend code, rebuild and restart:
 ```bash
 docker compose up --build
 ```
+
+## Pipeline Selection
+
+The backend supports multiple generation strategies. The default (`agentic`) is the production pipeline:
+
+```bash
+# Default — agentic pipeline (recommended)
+curl -X POST http://localhost:8000/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "a space shooter with neon aesthetics"}'
+
+# Alternative — contract pipeline
+curl -X POST "http://localhost:8000/api/generate?pipeline=contract" \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "a platformer with pixel art"}'
+```
+
+Available pipelines: `agentic` (default), `contract`, `multi_stage`, `stub`.
+Note: agentic pipeline is the only one that works
