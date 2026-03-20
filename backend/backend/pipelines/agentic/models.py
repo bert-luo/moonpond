@@ -13,6 +13,13 @@ from typing import Literal
 from pydantic import BaseModel
 
 
+class ControlMapping(BaseModel):
+    """A single input → action mapping for the generated game."""
+
+    key: str
+    action: str
+
+
 class AgenticGameSpec(BaseModel):
     """Rich game specification produced by the spec generator.
 
@@ -27,6 +34,7 @@ class AgenticGameSpec(BaseModel):
     scene_description: str
     win_condition: str
     fail_condition: str
+    controls: list[ControlMapping] = []
     perspective: Literal["2D", "3D"] = "2D"
 
 

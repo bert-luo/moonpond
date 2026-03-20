@@ -250,7 +250,7 @@ class AgenticPipeline:
             result = await run_exporter(
                 game_dir,
                 all_files,
-                [],  # controls=[] for agentic pipeline
+                [c.model_dump() for c in spec.controls],
                 emit,
                 perspective=spec.perspective,
             )

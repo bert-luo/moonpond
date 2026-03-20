@@ -30,6 +30,7 @@ items, UI elements, etc.) with their Godot node types and behaviors.
 - Describe the scene layout and visual structure.
 - Determine whether the game is 2D or 3D based on the concept.
 - Specify win and fail conditions.
+- List the player controls (key/mouse input → action mappings).
 
 IMPORTANT: Do NOT include audio, sound effects, or music in the spec. \
 The pipeline has no audio asset support. Do not create AudioManager or \
@@ -90,6 +91,24 @@ SUBMIT_SPEC_TOOL = {
                 "type": "string",
                 "description": "How the player loses.",
             },
+            "controls": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "key": {
+                            "type": "string",
+                            "description": "Human-readable input label (e.g. Arrow keys, WASD, Space, Click).",
+                        },
+                        "action": {
+                            "type": "string",
+                            "description": "What this input does (e.g. Move, Jump, Shoot).",
+                        },
+                    },
+                    "required": ["key", "action"],
+                },
+                "description": "List of player input controls.",
+            },
             "perspective": {
                 "type": "string",
                 "enum": ["2D", "3D"],
@@ -104,6 +123,7 @@ SUBMIT_SPEC_TOOL = {
             "scene_description",
             "win_condition",
             "fail_condition",
+            "controls",
             "perspective",
         ],
     },
