@@ -44,6 +44,7 @@ class MultiStagePipeline:
         emit: EmitFn,
         *,
         save_intermediate: bool = True,
+        **kwargs,
     ) -> GameResult:
         """Run all pipeline stages and return the final GameResult."""
         try:

@@ -23,7 +23,7 @@ from backend.pipelines.assets import (
     PARTICLE_PATHS_3D,
     SHADER_PATHS,
 )
-from backend.pipelines.base import EmitFn, ProgressEvent
+from backend.pipelines.base import EmitFn, ProgressEvent, SoftTimeout
 
 logger = logging.getLogger(__name__)
 
@@ -500,6 +500,7 @@ async def run_file_generation(
     existing_files: dict[str, str] | None = None,
     tripo: TripoAssetGenerator | None = None,
     asset_counter: list[int] | None = None,
+    soft_timeout: SoftTimeout | None = None,
 ) -> tuple[dict[str, str], list[dict]]:
     """Run the multi-turn file generation agent loop.
 
@@ -537,6 +538,11 @@ async def run_file_generation(
     messages: list[dict] = [{"role": "user", "content": initial_content}]
 
     for turn in range(MAX_TURNS_PER_ITERATION):
+        # Soft timeout: stop generating more files after current turn completes
+        if soft_timeout and soft_timeout.is_expired:
+            logger.info("Soft timeout expired at turn %d — exiting file generation", turn)
+            break
+
         # In stateless mode, reset messages each turn (after first)
         if context_strategy == "stateless" and turn > 0:
             messages = [

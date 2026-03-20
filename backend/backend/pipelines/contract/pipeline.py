@@ -64,6 +64,7 @@ class ContractPipeline:
         emit: EmitFn,
         *,
         save_intermediate: bool = True,
+        **kwargs,
     ) -> GameResult:
         """Generate a game from a text prompt using contract-first stages.
 

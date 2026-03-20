@@ -15,11 +15,11 @@ from anthropic import AsyncAnthropic
 
 from backend.pipelines.agentic.file_generator import run_file_generation
 from backend.pipelines.agentic.input_map import expand_input_map
-from backend.pipelines.agentic.models import AgenticGameSpec
+from backend.pipelines.agentic.models import AgenticGameSpec, VerifierTask
 from backend.pipelines.agentic.spec_generator import run_spec_generator
 from backend.pipelines.agentic.tripo_client import TripoAssetGenerator, TripoError
 from backend.pipelines.agentic.verifier import run_verifier
-from backend.pipelines.base import EmitFn, GameResult, ProgressEvent
+from backend.pipelines.base import EmitFn, GameResult, ProgressEvent, SoftTimeout
 from backend.pipelines.exporter import GAMES_DIR, run_exporter
 
 logger = __import__("logging").getLogger(__name__)
@@ -63,41 +63,59 @@ def _slugify(title: str, max_len: int = 40) -> str:
 
 def _build_fix_context(
     spec: AgenticGameSpec,
-    flagged_files: dict[str, str],
-    errors_by_file: dict[str, list[str]],
+    tasks: list[VerifierTask],
+    all_files: dict[str, str],
 ) -> str:
-    """Build a fix prompt that includes flagged file content and verifier errors.
+    """Build a fix prompt from verifier tasks (edits and creates).
 
     Args:
         spec: The game specification.
-        flagged_files: Dict mapping filename -> current content for files to fix.
-        errors_by_file: Dict mapping filename -> list of error descriptions.
+        tasks: Filtered list of verifier tasks to address.
+        all_files: All currently generated files (for edit context).
 
     Returns:
         A prompt string for the fix iteration.
     """
-    sections = []
-    for filename, content in flagged_files.items():
-        error_list = errors_by_file.get(filename, [])
-        error_text = (
-            "\n".join(f"  - {e}" for e in error_list)
-            if error_list
-            else "  (no specific errors listed)"
-        )
-        sections.append(
-            f"--- {filename} ---\n"
-            f"Current content:\n{content}\n\n"
-            f"Errors found:\n{error_text}\n"
-            f"--- end {filename} ---"
-        )
+    edit_tasks = [t for t in tasks if t.action == "edit"]
+    create_tasks = [t for t in tasks if t.action == "create"]
 
-    files_block = "\n\n".join(sections)
+    sections = []
+
+    # Edit section — show current file content + what to fix
+    if edit_tasks:
+        sections.append("## FILES TO EDIT\n")
+        tasks_by_file: dict[str, list[str]] = {}
+        for t in edit_tasks:
+            tasks_by_file.setdefault(t.file, []).append(t.description)
+
+        for filename, descs in tasks_by_file.items():
+            content = all_files.get(filename, "(file not found)")
+            task_text = "\n".join(f"  - {d}" for d in descs)
+            sections.append(
+                f"--- {filename} ---\n"
+                f"Current content:\n{content}\n\n"
+                f"Tasks:\n{task_text}\n"
+                f"--- end {filename} ---"
+            )
+
+    # Create section — describe what new files are needed
+    if create_tasks:
+        sections.append("## FILES TO CREATE\n")
+        for t in create_tasks:
+            sections.append(
+                f"- **{t.file}**: {t.description}"
+            )
+
+    body = "\n\n".join(sections)
     return (
-        f"The following files have errors that need to be fixed. "
-        f"Rewrite each file using write_file with the corrected content.\n\n"
-        f"Game: {spec.title} ({spec.genre})\n\n"
-        f"Files to fix:\n\n{files_block}\n\n"
-        f"Fix all listed errors. Write each corrected file using write_file."
+        f"The verifier identified remaining work for this game. "
+        f"Use write_file to fix existing files and create any new files.\n\n"
+        f"Game: {spec.title} ({spec.genre})\n"
+        f"Spec summary: {spec.scene_description}\n"
+        f"Mechanics: {', '.join(spec.mechanics)}\n"
+        f"Win: {spec.win_condition} | Fail: {spec.fail_condition}\n\n"
+        f"{body}\n\n"
+        f"Address all tasks above. Use write_file for each file (edited or new)."
     )
 
 
@@ -121,6 +139,7 @@ class AgenticPipeline:
         emit: EmitFn,
         *,
         save_intermediate: bool = True,
+        soft_timeout: SoftTimeout | None = None,
     ) -> GameResult:
         """Generate a game from a text prompt using the agentic loop.
 
@@ -172,6 +191,16 @@ class AgenticPipeline:
             fix_ctx: str | None = None
 
             for iteration in range(1, MAX_ITERATIONS + 1):
+                # Soft timeout: skip further fix iterations, go straight to export
+                if iteration > 1 and soft_timeout and soft_timeout.is_expired:
+                    await emit(
+                        ProgressEvent(
+                            type="stage_start",
+                            message="Soft timeout reached — skipping fix iteration, proceeding to build...",
+                        )
+                    )
+                    break
+
                 await emit(
                     ProgressEvent(
                         type="stage_start",
@@ -190,10 +219,31 @@ class AgenticPipeline:
                     existing_files=all_files if fix_ctx else None,
                     tripo=tripo,
                     asset_counter=asset_counter,
+                    soft_timeout=soft_timeout,
                 )
 
                 # Merge new/updated files into the running set
                 all_files.update(new_files)
+
+                # Soft timeout: skip verification, proceed to export
+                if soft_timeout and soft_timeout.is_expired:
+                    await emit(
+                        ProgressEvent(
+                            type="stage_start",
+                            message="Soft timeout reached — skipping verification, proceeding to build...",
+                        )
+                    )
+                    # Still save artifacts before breaking
+                    if dump_dir:
+                        iter_dir = dump_dir / f"iteration_{iteration}"
+                        files_dir = iter_dir / "files"
+                        files_dir.mkdir(parents=True, exist_ok=True)
+                        for fname, content in all_files.items():
+                            (files_dir / fname).write_text(content)
+                        (iter_dir / "conversation.json").write_text(
+                            json.dumps(_serialize_messages(conversation), indent=2)
+                        )
+                    break
 
                 # Save iteration artifacts
                 if dump_dir:
@@ -218,43 +268,28 @@ class AgenticPipeline:
                         verifier_result.model_dump_json(indent=2)
                     )
 
-                # If no critical errors, break early
-                if not verifier_result.has_critical_errors:
+                # If no critical tasks, break early
+                if not verifier_result.has_critical_tasks:
                     break
 
-                # Collect flagged files for targeted fix — include criticals
-                # and high-confidence warnings that affect core gameplay
+                # Filter tasks to address — all criticals plus gameplay warnings
                 _GAMEPLAY_KEYWORDS = {
                     "non-functional", "broken", "will not work",
                     "never called", "wrong position", "default position",
-                    "patrol", "spawn",
+                    "patrol", "spawn", "missing",
                 }
 
-                def _should_fix(err):  # noqa: ANN001, ANN202
-                    if err.severity == "critical":
+                def _should_fix(task):  # noqa: ANN001, ANN202
+                    if task.severity == "critical":
                         return True
-                    if err.severity == "warning":
-                        desc_lower = err.description.lower()
+                    if task.severity == "warning":
+                        desc_lower = task.description.lower()
                         return any(kw in desc_lower for kw in _GAMEPLAY_KEYWORDS)
                     return False
 
-                flagged_filenames = {
-                    e.file_path
-                    for e in verifier_result.errors
-                    if _should_fix(e)
-                }
-                errors_by_file: dict[str, list[str]] = {}
-                for err in verifier_result.errors:
-                    if _should_fix(err):
-                        errors_by_file.setdefault(err.file_path, []).append(
-                            err.description
-                        )
+                tasks_to_fix = [t for t in verifier_result.tasks if _should_fix(t)]
 
-                flagged_contents = {
-                    f: all_files[f] for f in flagged_filenames if f in all_files
-                }
-
-                fix_ctx = _build_fix_context(spec, flagged_contents, errors_by_file)
+                fix_ctx = _build_fix_context(spec, tasks_to_fix, all_files)
 
             # Expand simplified input map to full Godot Object() format
             if "project.godot" in all_files:

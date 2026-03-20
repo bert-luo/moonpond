@@ -20,7 +20,7 @@ GAMES_DIR = _REPO_ROOT / "games"
 class StubPipeline:
     """Minimal GamePipeline implementation for end-to-end testing."""
 
-    async def generate(self, prompt: str, job_id: str, emit: EmitFn, *, save_intermediate: bool = True) -> GameResult:
+    async def generate(self, prompt: str, job_id: str, emit: EmitFn, *, save_intermediate: bool = True, **kwargs) -> GameResult:
         await emit(ProgressEvent(type="stage_start", message="Setting up project..."))
 
         project_dir = GAMES_DIR / job_id / "project"

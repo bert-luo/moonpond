@@ -186,11 +186,11 @@ import json
 
 class TestRunVerifier:
     @pytest.mark.anyio
-    async def test_verifier_zero_errors(self):
-        """Mocked LLM returning zero errors produces VerifierResult with empty list."""
+    async def test_verifier_zero_tasks(self):
+        """Mocked LLM returning zero tasks produces VerifierResult with empty list."""
         from backend.pipelines.agentic.verifier import run_verifier
 
-        response_json = {"errors": [], "summary": "All good"}
+        response_json = {"tasks": [], "summary": "All good"}
         client = AsyncMock()
         mock_resp = _make_response(
             [_make_tool_use_block("submit_verification", response_json)],
@@ -203,31 +203,31 @@ class TestRunVerifier:
             client, SAMPLE_SPEC, {"player.gd": "extends Node2D"}, emit
         )
 
-        assert result.has_critical_errors is False
-        assert len(result.errors) == 0
+        assert result.has_critical_tasks is False
+        assert len(result.tasks) == 0
         assert result.summary == "All good"
 
     @pytest.mark.anyio
-    async def test_verifier_with_errors(self):
-        """Mocked LLM returning errors produces VerifierResult with populated errors."""
+    async def test_verifier_with_edit_and_create_tasks(self):
+        """Mocked LLM returning edit + create tasks produces correct VerifierResult."""
         from backend.pipelines.agentic.verifier import run_verifier
 
         response_json = {
-            "errors": [
+            "tasks": [
                 {
-                    "file_path": "player.gd",
-                    "error_type": "syntax",
+                    "action": "edit",
+                    "file": "player.gd",
                     "description": "Missing colon on line 5",
                     "severity": "critical",
                 },
                 {
-                    "file_path": "enemy.gd",
-                    "error_type": "reference",
-                    "description": "Preload path not found",
-                    "severity": "warning",
+                    "action": "create",
+                    "file": "enemy.gd",
+                    "description": "Enemy AI script missing — spec requires enemies that patrol",
+                    "severity": "critical",
                 },
             ],
-            "summary": "2 issues found",
+            "summary": "2 tasks identified",
         }
         client = AsyncMock()
         mock_resp = _make_response(
@@ -238,20 +238,22 @@ class TestRunVerifier:
         emit = AsyncMock()
 
         result = await run_verifier(
-            client, SAMPLE_SPEC, {"player.gd": "extends Node2D", "enemy.gd": "extends Area2D"}, emit
+            client, SAMPLE_SPEC, {"player.gd": "extends Node2D"}, emit
         )
 
-        assert result.has_critical_errors is True
-        assert len(result.errors) == 2
-        assert result.errors[0].file_path == "player.gd"
-        assert result.errors[1].error_type == "reference"
+        assert result.has_critical_tasks is True
+        assert len(result.tasks) == 2
+        assert result.tasks[0].action == "edit"
+        assert result.tasks[0].file == "player.gd"
+        assert result.tasks[1].action == "create"
+        assert result.tasks[1].file == "enemy.gd"
 
     @pytest.mark.anyio
     async def test_verifier_emits_stage_start(self):
         """Verifier emits a stage_start ProgressEvent."""
         from backend.pipelines.agentic.verifier import run_verifier
 
-        response_json = {"errors": [], "summary": "Clean"}
+        response_json = {"tasks": [], "summary": "Clean"}
         client = AsyncMock()
         mock_resp = _make_response(
             [_make_tool_use_block("submit_verification", response_json)],
@@ -289,23 +291,43 @@ class TestBuildVerifierPrompt:
 # AgenticPipeline orchestrator tests
 # ---------------------------------------------------------------------------
 
-from backend.pipelines.agentic.models import VerifierError, VerifierResult
+from backend.pipelines.agentic.models import VerifierTask, VerifierResult
 
 
-def _make_verifier_result(critical_files: list[str] | None = None) -> VerifierResult:
-    """Create a VerifierResult, optionally with critical errors on given files."""
-    if critical_files is None:
-        return VerifierResult(errors=[], summary="All good")
-    errors = [
-        VerifierError(
-            file_path=f,
-            error_type="syntax",
-            description=f"Error in {f}",
-            severity="critical",
+def _make_verifier_result(
+    critical_files: list[str] | None = None,
+    create_files: list[tuple[str, str]] | None = None,
+) -> VerifierResult:
+    """Create a VerifierResult, optionally with critical edit/create tasks.
+
+    Args:
+        critical_files: Files needing critical edits.
+        create_files: List of (filename, description) for critical create tasks.
+    """
+    tasks: list[VerifierTask] = []
+    if critical_files:
+        tasks.extend(
+            VerifierTask(
+                action="edit",
+                file=f,
+                description=f"Error in {f}",
+                severity="critical",
+            )
+            for f in critical_files
         )
-        for f in critical_files
-    ]
-    return VerifierResult(errors=errors, summary=f"{len(errors)} critical errors")
+    if create_files:
+        tasks.extend(
+            VerifierTask(
+                action="create",
+                file=f,
+                description=desc,
+                severity="critical",
+            )
+            for f, desc in create_files
+        )
+    if not tasks:
+        return VerifierResult(tasks=[], summary="All good")
+    return VerifierResult(tasks=tasks, summary=f"{len(tasks)} critical tasks")
 
 
 class TestAgenticPipelineGenerate:

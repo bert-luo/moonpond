@@ -1,7 +1,7 @@
 """Verifier Agent — independent LLM verification of generated game files.
 
 Makes a fresh LLM call (not connected to the generator conversation) to audit
-all generated files for a Godot 4 project and produces a structured error list.
+all generated files for a Godot 4 project and produces a structured task list.
 Uses tool_choice to force structured JSON output.
 """
 
@@ -21,70 +21,86 @@ VERIFIER_MODEL = "claude-sonnet-4-6"
 
 VERIFIER_SYSTEM_PROMPT = """\
 You are a Godot 4.5 game project reviewer. The target engine is Godot 4.5.1. \
-Your job is to review all generated game files and identify errors that would \
-prevent the game from running correctly.
+Your job is to review all generated game files and produce a task list of \
+remaining work needed to make the game correct and complete.
 
-Check for:
+Each task is either:
+- **edit** — an existing file needs to be modified to fix an error
+- **create** — a new file needs to be added to implement missing functionality
+
+CHECK FOR ERRORS IN EXISTING FILES (action: "edit"):
 1. **GDScript syntax errors** — invalid syntax, missing colons, wrong indentation, \
 Godot 3 syntax used instead of Godot 4 (e.g. .connect() string form instead of callable form). \
 CRITICAL Godot 4.5 rule: using `:=` with any function that returns Variant is a PARSE ERROR. \
 This includes load(), preload(), lerp(), ceil(), floor(), clamp(), randf(), randf_range(), \
 randi_range(), abs(), min(), max(), snapped(), get_node(), and any custom method without \
 an explicit return type annotation. Flag every `:=` used with these functions as a \
-"critical" syntax error. The fix is to use explicit typing (`var x: Type = ...`) or \
+"critical" task. The fix is to use explicit typing (`var x: Type = ...`) or \
 untyped (`var x = ...`).
 2. **Missing references** — preload() paths pointing to files that don't exist, \
 @onready var referencing node paths that don't exist in the scene tree, \
 get_node() calls for missing nodes.
 3. **Logic errors** — signals connected but never emitted, methods called but not \
 defined, variables used before assignment, infinite loops.
-4. **Missing files** — files referenced in code or scenes but not provided. \
-5. **Functional Errors** - if functionality/logic that is critical to the gameplay \
-experience in the spec is asbent or incorrect.
 
-IMPORTANT: Only report errors you are confident about. A file that appears \
+CHECK FOR MISSING FUNCTIONALITY (action: "create"):
+4. **Missing files** — files referenced in code or scenes but not provided.
+5. **Missing gameplay features** — compare the file manifest against the game spec. \
+If core gameplay functionality described in the spec (enemies, scoring, win/lose \
+conditions, key mechanics) has no implementation in any existing file, emit a \
+"create" task with a suggested filename and description of what the file should do.
+
+IMPORTANT: Only report issues you are confident about. A file that appears \
 syntactically complete should not be flagged unless a specific reference is \
-provably missing or a specific syntax rule is violated.
+provably missing or a specific syntax rule is violated. For "create" tasks, \
+only flag functionality that is clearly described in the spec but entirely absent \
+from the generated files.
 
 Severity levels:
 - "critical" — will cause a crash, blank screen, or completely broken gameplay
 - "warning" — may cause issues but the game could still partially function
 
 Call the submit_verification tool with your findings. \
-If no errors are found, call it with an empty errors list.\
+If no issues are found, call it with an empty tasks list.\
 """
 
 SUBMIT_VERIFICATION_TOOL = {
     "name": "submit_verification",
-    "description": "Submit the verification results with any errors found.",
+    "description": "Submit verification results as a task list of remaining work.",
     "input_schema": {
         "type": "object",
         "properties": {
-            "errors": {
+            "tasks": {
                 "type": "array",
                 "items": {
                     "type": "object",
                     "properties": {
-                        "file_path": {
+                        "action": {
                             "type": "string",
-                            "description": "Filename that has the error.",
+                            "enum": ["edit", "create"],
+                            "description": (
+                                "'edit' if an existing file needs fixing, "
+                                "'create' if a new file should be added."
+                            ),
                         },
-                        "error_type": {
+                        "file": {
                             "type": "string",
-                            "enum": ["syntax", "reference", "logic", "missing"],
-                            "description": "Category of error.",
+                            "description": (
+                                "Filename to edit (must exist) or suggested "
+                                "filename to create (e.g. 'enemy.gd')."
+                            ),
                         },
                         "description": {
                             "type": "string",
-                            "description": "Clear description of the error.",
+                            "description": "What needs to be done — the fix or the new file's purpose.",
                         },
                         "severity": {
                             "type": "string",
                             "enum": ["critical", "warning"],
-                            "description": "How severe the error is.",
+                            "description": "How severe the issue is.",
                         },
                     },
-                    "required": ["file_path", "error_type", "description", "severity"],
+                    "required": ["action", "file", "description", "severity"],
                 },
             },
             "summary": {
@@ -92,7 +108,7 @@ SUBMIT_VERIFICATION_TOOL = {
                 "description": "Brief human-readable summary of findings.",
             },
         },
-        "required": ["errors", "summary"],
+        "required": ["tasks", "summary"],
     },
 }
 
@@ -125,7 +141,8 @@ def _build_verifier_prompt(spec: AgenticGameSpec, files: dict[str, str]) -> str:
         f"Review the following Godot 4 game project files for errors.\n\n"
         f"Game Specification:\n{spec_summary}\n\n"
         f"Generated Files ({len(files)} total):\n\n{files_block}\n\n"
-        f"Analyze all files and call submit_verification with any errors found."
+        f"Analyze all files against the spec. Call submit_verification with "
+        f"tasks for any files that need editing or new files that should be created."
     )
 
 
@@ -166,13 +183,24 @@ async def run_verifier(
     tool_block = next(b for b in response.content if b.type == "tool_use")
     result = VerifierResult.model_validate(tool_block.input)
 
-    error_count = len(result.errors)
-    critical_count = sum(1 for e in result.errors if e.severity == "critical")
+    task_count = len(result.tasks)
+    critical_count = sum(1 for t in result.tasks if t.severity == "critical")
+    edit_count = sum(1 for t in result.tasks if t.action == "edit")
+    create_count = sum(1 for t in result.tasks if t.action == "create")
     await emit(
         ProgressEvent(
             type="stage_complete",
-            message=f"Verification complete: {error_count} errors ({critical_count} critical)",
-            data={"error_count": error_count, "critical_count": critical_count},
+            message=(
+                f"Verification complete: {task_count} tasks "
+                f"({edit_count} edits, {create_count} creates, "
+                f"{critical_count} critical)"
+            ),
+            data={
+                "task_count": task_count,
+                "critical_count": critical_count,
+                "edit_count": edit_count,
+                "create_count": create_count,
+            },
         )
     )
 

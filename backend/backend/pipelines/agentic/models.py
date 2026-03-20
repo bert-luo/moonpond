@@ -2,7 +2,7 @@
 
 Defines the structured types used throughout the agentic pipeline:
 - AgenticGameSpec: rich game specification from the first LLM turn
-- VerifierError: individual error found by the verifier
+- VerifierTask: individual task (edit/create) identified by the verifier
 - VerifierResult: aggregated verifier output with severity checking
 """
 
@@ -38,22 +38,26 @@ class AgenticGameSpec(BaseModel):
     perspective: Literal["2D", "3D"] = "2D"
 
 
-class VerifierError(BaseModel):
-    """A single error found by the verifier agent."""
+class VerifierTask(BaseModel):
+    """A single task identified by the verifier agent.
 
-    file_path: str
-    error_type: Literal["syntax", "reference", "logic", "missing"]
+    Each task is either an edit to an existing file or a request to create
+    a new file that's missing from the project.
+    """
+
+    action: Literal["edit", "create"]
+    file: str
     description: str
     severity: Literal["critical", "warning"]
 
 
 class VerifierResult(BaseModel):
-    """Aggregated verifier output — list of errors plus a human-readable summary."""
+    """Aggregated verifier output — task list plus a human-readable summary."""
 
-    errors: list[VerifierError]
+    tasks: list[VerifierTask]
     summary: str
 
     @property
-    def has_critical_errors(self) -> bool:
-        """Return True if any error has severity 'critical'."""
-        return any(e.severity == "critical" for e in self.errors)
+    def has_critical_tasks(self) -> bool:
+        """Return True if any task has severity 'critical'."""
+        return any(t.severity == "critical" for t in self.tasks)

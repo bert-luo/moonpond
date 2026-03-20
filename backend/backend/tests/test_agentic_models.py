@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from backend.pipelines.agentic.models import (
     AgenticGameSpec,
-    VerifierError,
+    VerifierTask,
     VerifierResult,
 )
 from backend.pipelines.agentic.spec_generator import run_spec_generator, SUBMIT_SPEC_TOOL
@@ -76,30 +76,42 @@ class TestAgenticGameSpec:
 
 
 # ---------------------------------------------------------------------------
-# VerifierError tests
+# VerifierTask tests
 # ---------------------------------------------------------------------------
 
 
-class TestVerifierError:
-    def test_validates_well_formed_dict(self):
-        err = VerifierError.model_validate(
+class TestVerifierTask:
+    def test_validates_edit_task(self):
+        task = VerifierTask.model_validate(
             {
-                "file_path": "player.gd",
-                "error_type": "syntax",
+                "action": "edit",
+                "file": "player.gd",
                 "description": "Missing colon",
                 "severity": "critical",
             }
         )
-        assert err.file_path == "player.gd"
-        assert err.error_type == "syntax"
-        assert err.severity == "critical"
+        assert task.action == "edit"
+        assert task.file == "player.gd"
+        assert task.severity == "critical"
 
-    def test_rejects_invalid_error_type(self):
+    def test_validates_create_task(self):
+        task = VerifierTask.model_validate(
+            {
+                "action": "create",
+                "file": "enemy.gd",
+                "description": "Enemy AI script needed for patrol behavior",
+                "severity": "critical",
+            }
+        )
+        assert task.action == "create"
+        assert task.file == "enemy.gd"
+
+    def test_rejects_invalid_action(self):
         with pytest.raises(ValidationError):
-            VerifierError.model_validate(
+            VerifierTask.model_validate(
                 {
-                    "file_path": "x.gd",
-                    "error_type": "unknown_type",
+                    "action": "delete",
+                    "file": "x.gd",
                     "description": "Bad",
                     "severity": "critical",
                 }
@@ -107,10 +119,10 @@ class TestVerifierError:
 
     def test_rejects_invalid_severity(self):
         with pytest.raises(ValidationError):
-            VerifierError.model_validate(
+            VerifierTask.model_validate(
                 {
-                    "file_path": "x.gd",
-                    "error_type": "syntax",
+                    "action": "edit",
+                    "file": "x.gd",
                     "description": "Bad",
                     "severity": "info",
                 }
@@ -126,57 +138,57 @@ class TestVerifierResult:
     def test_validates_well_formed_dict(self):
         result = VerifierResult.model_validate(
             {
-                "errors": [
+                "tasks": [
                     {
-                        "file_path": "player.gd",
-                        "error_type": "syntax",
+                        "action": "edit",
+                        "file": "player.gd",
                         "description": "Missing colon",
                         "severity": "critical",
                     }
                 ],
-                "summary": "1 error found",
+                "summary": "1 task identified",
             }
         )
-        assert len(result.errors) == 1
-        assert result.summary == "1 error found"
+        assert len(result.tasks) == 1
+        assert result.summary == "1 task identified"
 
-    def test_has_critical_errors_true_when_critical(self):
+    def test_has_critical_tasks_true_when_critical(self):
         result = VerifierResult(
-            errors=[
-                VerifierError(
-                    file_path="a.gd",
-                    error_type="syntax",
+            tasks=[
+                VerifierTask(
+                    action="edit",
+                    file="a.gd",
                     description="Bad",
                     severity="critical",
                 ),
-                VerifierError(
-                    file_path="b.gd",
-                    error_type="logic",
-                    description="Meh",
+                VerifierTask(
+                    action="create",
+                    file="b.gd",
+                    description="Missing feature",
                     severity="warning",
                 ),
             ],
             summary="Mixed",
         )
-        assert result.has_critical_errors is True
+        assert result.has_critical_tasks is True
 
-    def test_has_critical_errors_false_when_all_warnings(self):
+    def test_has_critical_tasks_false_when_all_warnings(self):
         result = VerifierResult(
-            errors=[
-                VerifierError(
-                    file_path="a.gd",
-                    error_type="logic",
+            tasks=[
+                VerifierTask(
+                    action="edit",
+                    file="a.gd",
                     description="Minor",
                     severity="warning",
                 ),
             ],
             summary="Warnings only",
         )
-        assert result.has_critical_errors is False
+        assert result.has_critical_tasks is False
 
-    def test_has_critical_errors_false_when_empty(self):
-        result = VerifierResult(errors=[], summary="Clean")
-        assert result.has_critical_errors is False
+    def test_has_critical_tasks_false_when_empty(self):
+        result = VerifierResult(tasks=[], summary="Clean")
+        assert result.has_critical_tasks is False
 
 
 # ---------------------------------------------------------------------------

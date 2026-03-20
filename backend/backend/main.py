@@ -21,8 +21,12 @@ from starlette.responses import Response
 
 from .models.requests import GenerateRequest
 from .models.responses import GenerateResponse
+from .pipelines.base import SoftTimeout
 from .pipelines.registry import PIPELINES
 from .state import active_jobs
+
+SOFT_TIMEOUT_S: float = 750
+"""Seconds before the pipeline receives a soft-stop signal."""
 
 HEARTBEAT_INTERVAL_S: int = 15
 """Seconds between SSE heartbeat comments when the pipeline queue is idle."""
@@ -90,13 +94,22 @@ async def generate(
     async def emit(event):
         await queue.put(event)
 
-    background_tasks.add_task(
-        pipeline_cls().generate,
-        req.prompt,
-        job_id,
-        emit,
-        save_intermediate=req.save_intermediate,
-    )
+    soft_timeout = SoftTimeout(SOFT_TIMEOUT_S)
+
+    async def run_pipeline():
+        soft_timeout.start()
+        try:
+            await pipeline_cls().generate(
+                req.prompt,
+                job_id,
+                emit,
+                save_intermediate=req.save_intermediate,
+                soft_timeout=soft_timeout,
+            )
+        finally:
+            soft_timeout.cancel()
+
+    background_tasks.add_task(run_pipeline)
     return GenerateResponse(job_id=job_id)
 
 
