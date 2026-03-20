@@ -1,9 +1,9 @@
 ---
 phase: 9
 slug: add-3d-game-generation-support-to-agentic-pipeline
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: active
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-03-20
 ---
 
@@ -19,16 +19,16 @@ created: 2026-03-20
 |----------|-------|
 | **Framework** | pytest 7.x |
 | **Config file** | backend/pyproject.toml |
-| **Quick run command** | `cd backend && uv run pytest tests/pipelines/agentic/ -x -q` |
-| **Full suite command** | `cd backend && uv run pytest tests/ -x -q` |
+| **Quick run command** | `cd backend && uv run pytest backend/tests/test_agentic_models.py backend/tests/test_file_generator_prompt.py backend/tests/test_agentic_pipeline.py -x -q` |
+| **Full suite command** | `cd backend && uv run pytest backend/tests/ -x -q` |
 | **Estimated runtime** | ~10 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `cd backend && uv run pytest tests/pipelines/agentic/ -x -q`
-- **After every plan wave:** Run `cd backend && uv run pytest tests/ -x -q`
+- **After every task commit:** Run quick run command above
+- **After every plan wave:** Run `cd backend && uv run pytest backend/tests/ -x -q`
 - **Before `/gsd:verify-work`:** Full suite must be green
 - **Max feedback latency:** 10 seconds
 
@@ -38,22 +38,24 @@ created: 2026-03-20
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 09-01-01 | 01 | 1 | Schema + spec gen | unit | `uv run pytest tests/pipelines/agentic/test_models.py tests/pipelines/agentic/test_spec_generator.py -x -q` | ❌ W0 | ⬜ pending |
-| 09-02-01 | 02 | 1 | File gen dynamic prompt | unit | `uv run pytest tests/pipelines/agentic/test_file_generator.py -x -q` | ❌ W0 | ⬜ pending |
-| 09-03-01 | 03 | 2 | Exporter template selection + base_3d | unit | `uv run pytest tests/pipelines/test_exporter.py -x -q` | ❌ W0 | ⬜ pending |
+| 09-01-01 | 01 | 1 | Schema + spec gen | unit | `uv run pytest backend/tests/test_agentic_models.py -x -q` | YES (existing) | pending |
+| 09-01-02 | 01 | 1 | base_3d template | filesystem | `test -f .../base_3d/export_presets.cfg && ...` | N/A (shell) | pending |
+| 09-02-01 | 02 | 2 | File gen dynamic prompt + exporter | unit | `uv run pytest backend/tests/test_file_generator_prompt.py backend/tests/test_agentic_pipeline.py -x -q` | YES (existing) | pending |
+| 09-02-02 | 02 | 2 | 3D prompt + exporter tests | unit | `uv run pytest backend/tests/test_file_generator_prompt.py -k "3d_prompt" backend/tests/test_agentic_pipeline.py -k "template_dir" -x -q` | YES (created in task) | pending |
 
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
+*Status: pending · green · red · flaky*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `tests/pipelines/agentic/test_models.py` — test perspective field default and validation
-- [ ] `tests/pipelines/agentic/test_spec_generator.py` — test perspective in tool schema
-- [ ] `tests/pipelines/agentic/test_file_generator.py` — test prompt builder outputs for 2D vs 3D
-- [ ] `tests/pipelines/test_exporter.py` — test template selection logic
+All test files already exist in the project:
 
-*Existing test infrastructure (pytest + fixtures) covers framework needs.*
+- [x] `backend/backend/tests/test_agentic_models.py` — test perspective field default and validation (Plan 09-01 Task 1 adds tests here)
+- [x] `backend/backend/tests/test_file_generator_prompt.py` — test prompt builder outputs for 2D vs 3D (Plan 09-02 Task 2 adds 3D tests here)
+- [x] `backend/backend/tests/test_agentic_pipeline.py` — test exporter template selection logic (Plan 09-02 Task 2 adds template_dir tests here)
+
+*No new test files needed. All tests go into existing files following the project's flat test directory convention (`backend/backend/tests/test_*.py`).*
 
 ---
 
@@ -68,11 +70,11 @@ created: 2026-03-20
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 10s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 10s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** ready
