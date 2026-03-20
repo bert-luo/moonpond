@@ -82,6 +82,16 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
         } catch { /* ignore parse errors */ }
       });
 
+      // Named event: asset_generated
+      es.addEventListener('asset_generated', (e: Event) => {
+        const me = e as MessageEvent;
+        try {
+          const event = JSON.parse(me.data);
+          const d = event.data ?? {};
+          dispatch({ type: 'SSE_ASSET_GENERATED', sessionId, assetName: d.asset_name ?? 'unknown' });
+        } catch { /* ignore parse errors */ }
+      });
+
       // Named event: done
       es.addEventListener('done', (e: Event) => {
         // Close BEFORE dispatching so onerror sees esRef.current !== es and skips

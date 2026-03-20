@@ -4,7 +4,7 @@ export type Status = 'idle' | 'generating' | 'done' | 'error';
 /** A single message in the chat panel. */
 export interface ChatMessage {
   id: string;
-  type: 'stage' | 'complete' | 'error' | 'spec_info' | 'file_written' | 'controls';
+  type: 'stage' | 'complete' | 'error' | 'spec_info' | 'file_written' | 'asset_generated' | 'controls';
   text: string;
   data?: Record<string, unknown>;
 }
@@ -71,6 +71,7 @@ export type GenerationAction =
   | { type: 'SSE_STAGE'; sessionId: string; message: string }
   | { type: 'SSE_SPEC_COMPLETE'; sessionId: string; title: string; description: string }
   | { type: 'SSE_FILE_WRITTEN'; sessionId: string; filename: string; lines: number }
+  | { type: 'SSE_ASSET_GENERATED'; sessionId: string; assetName: string }
   | { type: 'SSE_DONE'; sessionId: string; gameUrl: string; controls: ControlMapping[] }
   | { type: 'SSE_ERROR'; sessionId: string; message: string }
   | { type: 'RESET'; sessionId: string };
@@ -161,6 +162,23 @@ export function generationReducer(
               type: 'file_written' as const,
               text: `Generated ${action.filename} (${action.lines} lines)`,
               data: { filename: action.filename, lines: action.lines },
+            },
+          ],
+        })),
+      };
+
+    case 'SSE_ASSET_GENERATED':
+      return {
+        ...state,
+        sessions: updateSession(state.sessions, action.sessionId, (s) => ({
+          ...s,
+          messages: [
+            ...s.messages,
+            {
+              id: crypto.randomUUID(),
+              type: 'asset_generated' as const,
+              text: `Generated 3D asset: ${action.assetName}`,
+              data: { assetName: action.assetName },
             },
           ],
         })),
