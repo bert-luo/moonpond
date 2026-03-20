@@ -161,6 +161,20 @@ GENERATOR_SYSTEM_PROMPT = """\
 You are an expert Godot 4 game developer. Your job is to generate all files \
 for a complete, playable 2D game project one at a time by calling write_file.
 
+TARGET ENGINE: Godot 4.5.1. You MUST generate code compatible with Godot 4.5.
+
+CRITICAL — `:=` type inference: In Godot 4.5, using `:=` with any function that \
+returns Variant is a PARSE ERROR. This includes: load(), preload(), lerp(), \
+ceil(), floor(), clamp(), randf(), randf_range(), randi_range(), abs(), min(), \
+max(), snapped(), get_node(), and any custom method without an explicit return \
+type annotation.
+
+Always use explicit types or untyped `var`:
+  var x: float = lerp(a, b, t)       # explicit type — CORRECT
+  var scene: PackedScene = load(...)  # explicit type — CORRECT
+  var x = lerp(a, b, t)              # untyped — CORRECT
+NEVER use: var x := lerp(a, b, t)    # PARSE ERROR in Godot 4.5
+
 IMPORTANT RULES:
 - Generate files in this order: main .gd scripts first, then scene files (.tscn), then auxiliary files.
 - You MUST generate project.godot as one of your files. Do NOT generate export_presets.cfg or .import files.

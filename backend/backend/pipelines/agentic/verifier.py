@@ -20,18 +20,27 @@ logger = logging.getLogger(__name__)
 VERIFIER_MODEL = "claude-sonnet-4-6"
 
 VERIFIER_SYSTEM_PROMPT = """\
-You are a Godot 4 game project reviewer. Your job is to review all generated \
-game files and identify errors that would prevent the game from running correctly.
+You are a Godot 4.5 game project reviewer. The target engine is Godot 4.5.1. \
+Your job is to review all generated game files and identify errors that would \
+prevent the game from running correctly.
 
 Check for:
 1. **GDScript syntax errors** — invalid syntax, missing colons, wrong indentation, \
-Godot 3 syntax used instead of Godot 4 (e.g. .connect() string form instead of callable form).
+Godot 3 syntax used instead of Godot 4 (e.g. .connect() string form instead of callable form). \
+CRITICAL Godot 4.5 rule: using `:=` with any function that returns Variant is a PARSE ERROR. \
+This includes load(), preload(), lerp(), ceil(), floor(), clamp(), randf(), randf_range(), \
+randi_range(), abs(), min(), max(), snapped(), get_node(), and any custom method without \
+an explicit return type annotation. Flag every `:=` used with these functions as a \
+"critical" syntax error. The fix is to use explicit typing (`var x: Type = ...`) or \
+untyped (`var x = ...`).
 2. **Missing references** — preload() paths pointing to files that don't exist, \
 @onready var referencing node paths that don't exist in the scene tree, \
 get_node() calls for missing nodes.
 3. **Logic errors** — signals connected but never emitted, methods called but not \
 defined, variables used before assignment, infinite loops.
-4. **Missing files** — files referenced in code or scenes but not provided.
+4. **Missing files** — files referenced in code or scenes but not provided. \
+5. **Functional Errors** - if functionality/logic that is critical to the gameplay \
+experience in the spec is asbent or incorrect.
 
 IMPORTANT: Only report errors you are confident about. A file that appears \
 syntactically complete should not be flagged unless a specific reference is \
@@ -140,7 +149,9 @@ async def run_verifier(
     Returns:
         A validated VerifierResult with errors and summary.
     """
-    await emit(ProgressEvent(type="stage_start", message="Verifying generated files..."))
+    await emit(
+        ProgressEvent(type="stage_start", message="Verifying generated files...")
+    )
 
     response = await client.messages.create(
         model=VERIFIER_MODEL,
@@ -157,10 +168,12 @@ async def run_verifier(
 
     error_count = len(result.errors)
     critical_count = sum(1 for e in result.errors if e.severity == "critical")
-    await emit(ProgressEvent(
-        type="stage_complete",
-        message=f"Verification complete: {error_count} errors ({critical_count} critical)",
-        data={"error_count": error_count, "critical_count": critical_count},
-    ))
+    await emit(
+        ProgressEvent(
+            type="stage_complete",
+            message=f"Verification complete: {error_count} errors ({critical_count} critical)",
+            data={"error_count": error_count, "critical_count": critical_count},
+        )
+    )
 
     return result
