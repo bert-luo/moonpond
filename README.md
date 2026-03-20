@@ -1,5 +1,58 @@
 # moonpond
 
+AI-powered Godot game generator. Describe a game in natural language, and Moonpond generates a playable browser game using Godot 4 + WebAssembly.
+
+## Running the Backend Locally
+
+### Prerequisites
+
+- Python 3.12+ and [uv](https://docs.astral.sh/uv/)
+- Godot 4.5+ (for WASM export)
+- A `.env` file in the project root with your API keys:
+  ```
+  ANTHROPIC_API_KEY=sk-moo-...
+  ```
+
+### Start
+
+```bash
+cd backend
+uv sync
+uv run uvicorn backend.main:app --reload --port 8000
+```
+
+The API server runs at `http://localhost:8000`.
+
+### Tests
+
+```bash
+cd backend
+uv run pytest
+```
+
+## Running the Frontend
+
+### Prerequisites
+
+- Node.js 18+ and npm
+
+### Start
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The dev server runs at `http://localhost:3001`. It connects to the backend at `http://localhost:8000`.
+
+### Tests
+
+```bash
+cd frontend
+npm test
+```
+
 ## Running the Backend with Docker
 
 ### Prerequisites
