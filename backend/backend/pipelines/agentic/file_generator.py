@@ -445,11 +445,14 @@ async def run_file_generation(
                 # Emit progress for write_file calls
                 if block.name == "write_file":
                     filename = block.input.get("filename", "unknown")
+                    content = block.input.get("content", "")
+                    line_count = content.count("\n") + 1 if content else 0
+                    logger.info("file_generated: %s — content length=%d, lines=%d", filename, len(content), line_count)
                     await emit(
                         ProgressEvent(
                             type="file_generated",
                             message=f"Generated {filename}",
-                            data={"filename": filename, "line_count": block.input.get("content", "").count("\n") + 1},
+                            data={"filename": filename, "line_count": line_count},
                         )
                     )
 

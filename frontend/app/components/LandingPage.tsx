@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface LandingPageProps {
   onSubmit: (prompt: string) => void;
@@ -16,6 +16,21 @@ const EXAMPLE_PROMPTS = [
 
 export function LandingPage({ onSubmit, isGenerating }: LandingPageProps) {
   const [prompt, setPrompt] = useState('');
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [fade, setFade] = useState(true);
+
+  // Cycle placeholder text through examples
+  useEffect(() => {
+    if (prompt) return; // stop cycling when user types
+    const interval = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setPlaceholderIdx((i) => (i + 1) % EXAMPLE_PROMPTS.length);
+        setFade(true);
+      }, 300);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [prompt]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,12 +40,7 @@ export function LandingPage({ onSubmit, isGenerating }: LandingPageProps) {
   };
 
   return (
-    <div className="absolute inset-0 z-10 landing-bg flex items-center justify-center">
-      {/* Water reflection decorative element */}
-      <div className="landing-reflection absolute inset-x-0 top-[55%] h-[120px] pointer-events-none">
-        <div className="w-full h-full bg-gradient-to-b from-[oklch(0.72_0.18_265_/_0.15)] to-transparent rounded-full blur-2xl" />
-      </div>
-
+    <div className="absolute inset-0 z-10 bg-[var(--color-bg)] flex items-center justify-center">
       <div className="relative z-10 flex flex-col items-center gap-8 max-w-xl w-full px-6">
         {/* Title */}
         <div className="text-center">
@@ -47,14 +57,24 @@ export function LandingPage({ onSubmit, isGenerating }: LandingPageProps) {
 
         {/* Prompt input */}
         <form onSubmit={handleSubmit} className="w-full flex flex-col items-center gap-4">
-          <input
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Describe a game..."
-            disabled={isGenerating}
-            className="w-full bg-white/5 backdrop-blur-sm border border-[var(--color-border)] rounded-xl px-5 py-4 text-lg text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50 transition-colors"
-          />
+          <div className="relative w-full">
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder=""
+              disabled={isGenerating}
+              className="w-full bg-white/5 backdrop-blur-sm border border-[var(--color-border)] rounded-xl px-5 py-4 text-lg text-[var(--color-text)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50 transition-colors"
+            />
+            {/* Carousel placeholder */}
+            {!prompt && (
+              <span
+                className={`absolute left-5 top-1/2 -translate-y-1/2 text-lg text-[var(--color-text-muted)] pointer-events-none transition-opacity duration-300 ${fade ? 'opacity-100' : 'opacity-0'}`}
+              >
+                {EXAMPLE_PROMPTS[placeholderIdx]}
+              </span>
+            )}
+          </div>
 
           <button
             type="submit"
@@ -64,20 +84,6 @@ export function LandingPage({ onSubmit, isGenerating }: LandingPageProps) {
             {isGenerating ? 'Generating...' : 'Generate Game'}
           </button>
         </form>
-
-        {/* Example prompts */}
-        <div className="flex flex-wrap justify-center gap-2">
-          {EXAMPLE_PROMPTS.map((example) => (
-            <button
-              key={example}
-              type="button"
-              onClick={() => setPrompt(example)}
-              className="bg-white/5 hover:bg-white/10 text-[var(--color-text-muted)] text-sm rounded-full px-4 py-2 cursor-pointer transition-colors"
-            >
-              {example}
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );

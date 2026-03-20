@@ -5,22 +5,27 @@ import { LandingPage } from '@/app/components/LandingPage';
 describe('LandingPage', () => {
   it('renders prompt input and submit button', () => {
     render(<LandingPage onSubmit={vi.fn()} isGenerating={false} />);
-    expect(screen.getByPlaceholderText('Describe a game...')).toBeDefined();
+    expect(screen.getByRole('textbox')).toBeDefined();
     expect(screen.getByRole('button', { name: 'Generate Game' })).toBeDefined();
   });
 
-  it('clicking an example prompt fills the input', () => {
+  it('shows carousel placeholder when input is empty', () => {
     render(<LandingPage onSubmit={vi.fn()} isGenerating={false} />);
-    const chip = screen.getByText('A space shooter where you dodge asteroids');
-    fireEvent.click(chip);
-    const input = screen.getByPlaceholderText('Describe a game...') as HTMLInputElement;
-    expect(input.value).toBe('A space shooter where you dodge asteroids');
+    // First example prompt should appear as placeholder text
+    expect(screen.getByText('A space shooter where you dodge asteroids')).toBeDefined();
+  });
+
+  it('hides carousel placeholder when user types', () => {
+    render(<LandingPage onSubmit={vi.fn()} isGenerating={false} />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: 'my game' } });
+    expect(screen.queryByText('A space shooter where you dodge asteroids')).toBeNull();
   });
 
   it('submit calls onSubmit with the prompt text', () => {
     const onSubmit = vi.fn();
     render(<LandingPage onSubmit={onSubmit} isGenerating={false} />);
-    const input = screen.getByPlaceholderText('Describe a game...') as HTMLInputElement;
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'my cool game' } });
     fireEvent.submit(input.closest('form')!);
     expect(onSubmit).toHaveBeenCalledWith('my cool game');
