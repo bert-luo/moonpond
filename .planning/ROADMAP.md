@@ -232,3 +232,21 @@ Plans:
 Plans:
 - [ ] 08-01-PLAN.md — Input map expansion utility, system prompt rewrite with project.godot skeleton and asset paths, template file stripping
 - [ ] 08-02-PLAN.md — Pipeline integration: wire expand_input_map into AgenticPipeline before export
+
+### Phase 9: Add 3D game generation support to agentic pipeline
+
+**Goal:** Add a `perspective` field to the agentic pipeline that routes 2D and 3D game generation through divergent prompt paths while sharing the same generate-verify-fix orchestration loop, with a new base_3d template for 3D WASM export
+**Requirements**: 3D-SCHEMA, 3D-SPEC, 3D-TEMPLATE, 3D-PROMPT, 3D-EXPORT, 3D-WIRE
+**Depends on:** Phase 8
+**Success Criteria** (what must be TRUE):
+  1. AgenticGameSpec has a `perspective` field (Literal["2D", "3D"]) with "2D" default for backward compatibility
+  2. Spec generator determines whether a game is 2D or 3D and sets the perspective field
+  3. File generator system prompt dynamically branches on perspective — 3D prompt includes Camera3D, lighting, Vector3, MeshInstance3D requirements
+  4. Exporter selects base_2d or base_3d template based on perspective
+  5. base_3d template exists with 3D-compatible assets (no 2D-only control snippets or shaders)
+  6. All existing 2D pipelines and tests are unaffected (backward compatible)
+**Plans:** 2 plans
+
+Plans:
+- [ ] 09-01-PLAN.md — Schema perspective field, spec generator updates, base_3d template creation
+- [ ] 09-02-PLAN.md — Dynamic prompt builder, exporter template selection, pipeline wiring, tests
