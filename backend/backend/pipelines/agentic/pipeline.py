@@ -17,9 +17,12 @@ from backend.pipelines.agentic.file_generator import run_file_generation
 from backend.pipelines.agentic.input_map import expand_input_map
 from backend.pipelines.agentic.models import AgenticGameSpec
 from backend.pipelines.agentic.spec_generator import run_spec_generator
+from backend.pipelines.agentic.tripo_client import TripoAssetGenerator, TripoError
 from backend.pipelines.agentic.verifier import run_verifier
 from backend.pipelines.base import EmitFn, GameResult, ProgressEvent
 from backend.pipelines.exporter import GAMES_DIR, run_exporter
+
+logger = __import__("logging").getLogger(__name__)
 
 MAX_ITERATIONS = 4
 """Maximum generate-verify-fix iterations before proceeding to export."""
@@ -152,6 +155,18 @@ class AgenticPipeline:
             project_dir = GAMES_DIR / game_dir / "project"
             project_dir.mkdir(parents=True, exist_ok=True)
 
+            # Initialize 3D asset generator if API key is available
+            tripo: TripoAssetGenerator | None = None
+            if spec.perspective == "3D":
+                try:
+                    tripo = TripoAssetGenerator()
+                    logger.info("Tripo 3D asset generator initialized")
+                except TripoError:
+                    logger.info("TRIPO_API_KEY not set — 3D asset generation disabled")
+
+            # Asset counter shared across iterations (mutable list)
+            asset_counter: list[int] = [0]
+
             # Stage 2: Generate-Verify-Fix loop
             all_files: dict[str, str] = {}
             fix_ctx: str | None = None
@@ -173,6 +188,8 @@ class AgenticPipeline:
                     context_strategy=self._context_strategy,
                     fix_context=fix_ctx,
                     existing_files=all_files if fix_ctx else None,
+                    tripo=tripo,
+                    asset_counter=asset_counter,
                 )
 
                 # Merge new/updated files into the running set

@@ -436,7 +436,7 @@ class TestAgenticPipelineGenerate:
 
         file_gen_calls = []
 
-        async def mock_file_gen(client, spec, game_dir, emit_fn, *, context_strategy="full_history", fix_context=None, existing_files=None):
+        async def mock_file_gen(client, spec, game_dir, emit_fn, *, context_strategy="full_history", fix_context=None, existing_files=None, tripo=None, asset_counter=None):
             file_gen_calls.append({"fix_context": fix_context})
             conversation = [{"role": "user", "content": "test"}]
             if fix_context is None:

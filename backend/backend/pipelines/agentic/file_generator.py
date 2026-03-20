@@ -9,15 +9,18 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from pathlib import Path
 
 from anthropic import AsyncAnthropic
 
 from backend.pipelines.agentic.models import AgenticGameSpec
+from backend.pipelines.agentic.tripo_client import TripoAssetGenerator, TripoError
 from backend.pipelines.assets import (
     CONTROL_SNIPPET_PATHS,
     PALETTE_PATHS,
-    PARTICLE_PATHS,
+    PARTICLE_PATHS_2D,
+    PARTICLE_PATHS_3D,
     SHADER_PATHS,
 )
 from backend.pipelines.base import EmitFn, ProgressEvent
@@ -71,7 +74,42 @@ READ_FILE_TOOL = {
     },
 }
 
-AGENT_TOOLS = [WRITE_FILE_TOOL, READ_FILE_TOOL]
+GENERATE_3D_ASSET_TOOL = {
+    "name": "generate_3d_asset",
+    "description": (
+        "Generate a 3D model asset from a text description using AI. "
+        "Returns the res:// path of the generated .glb file in assets/models/. "
+        "Use ONLY for key visual elements (player character, enemies, vehicles, "
+        "collectibles, weapons) — NOT for simple geometry like floors, walls, or "
+        "platforms which should use built-in meshes (BoxMesh, SphereMesh, etc.). "
+        "Maximum 5 assets per game. Each call takes ~30-60 seconds."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "asset_name": {
+                "type": "string",
+                "description": (
+                    "Short snake_case name for the asset file, e.g. "
+                    "'space_ship', 'treasure_chest', 'dragon'."
+                ),
+            },
+            "prompt": {
+                "type": "string",
+                "description": (
+                    "Detailed description of the 3D model to generate. "
+                    "Be specific about shape, style, color, and size. "
+                    "E.g. 'A low-poly cartoon wooden treasure chest with "
+                    "gold trim and a rounded lid, game-ready style'."
+                ),
+            },
+        },
+        "required": ["asset_name", "prompt"],
+    },
+}
+
+AGENT_TOOLS_BASE = [WRITE_FILE_TOOL, READ_FILE_TOOL]
+AGENT_TOOLS = AGENT_TOOLS_BASE  # default (2D or no API key)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -79,6 +117,7 @@ AGENT_TOOLS = [WRITE_FILE_TOOL, READ_FILE_TOOL]
 
 GENERATOR_MODEL = "claude-sonnet-4-6"
 MAX_TURNS_PER_ITERATION = 30
+MAX_3D_ASSETS = 5
 
 # ---------------------------------------------------------------------------
 # Tool dispatch
@@ -90,6 +129,9 @@ async def _dispatch_tool(
     tool_input: dict,
     game_dir: Path,
     generated_files: dict[str, str],
+    *,
+    tripo: TripoAssetGenerator | None = None,
+    asset_counter: list[int] | None = None,
 ) -> str:
     """Execute a tool call and return the result string for tool_result.
 
@@ -99,13 +141,17 @@ async def _dispatch_tool(
         game_dir: Path to the game project directory.
         generated_files: Mutable dict tracking filename -> content for all
             files written during this generation iteration.
+        tripo: Optional Tripo client for 3D asset generation.
+        asset_counter: Mutable single-element list tracking assets generated.
 
     Returns:
         A string result to send back as tool_result content.
     """
     if tool_name == "write_file":
-        filename = tool_input["filename"]
-        content = tool_input["content"]
+        filename = tool_input.get("filename")
+        content = tool_input.get("content")
+        if not filename or content is None:
+            return "ERROR: write_file requires 'filename' and 'content' parameters"
         try:
             (game_dir / filename).write_text(content)
             generated_files[filename] = content
@@ -115,13 +161,58 @@ async def _dispatch_tool(
             return f"ERROR: {e}"
 
     elif tool_name == "read_file":
-        filename = tool_input["filename"]
+        filename = tool_input.get("filename", "")
+        if not filename:
+            return "ERROR: read_file requires a 'filename' parameter"
         if filename in generated_files:
             return generated_files[filename]
         path = game_dir / filename
         if path.exists():
             return path.read_text()
         return f"ERROR: file not found: {filename}"
+
+    elif tool_name == "generate_3d_asset":
+        if tripo is None:
+            return "ERROR: 3D asset generation not available (no API key configured)"
+
+        counter = asset_counter or [0]
+        if counter[0] >= MAX_3D_ASSETS:
+            return (
+                f"ERROR: asset budget exhausted ({MAX_3D_ASSETS}/{MAX_3D_ASSETS} used). "
+                "Use built-in meshes (BoxMesh, SphereMesh, etc.) for remaining objects."
+            )
+
+        asset_name = tool_input.get("asset_name", "")
+        prompt = tool_input.get("prompt", "")
+        if not asset_name or not prompt:
+            return "ERROR: generate_3d_asset requires 'asset_name' and 'prompt' parameters"
+        dest = game_dir / "assets" / "models" / f"{asset_name}.glb"
+
+        try:
+            await tripo.generate_3d_asset(prompt=prompt, dest=dest)
+            counter[0] += 1
+            remaining = MAX_3D_ASSETS - counter[0]
+            res_path = f"res://assets/models/{asset_name}.glb"
+            return (
+                f"OK: generated {res_path} ({dest.stat().st_size} bytes). "
+                f"{remaining} asset(s) remaining.\n"
+                f"Load in GDScript:\n"
+                f'  var scene = load("{res_path}").instantiate()\n'
+                f"  scene.scale = Vector3(1, 1, 1)  # adjust as needed\n"
+                f"  add_child(scene)"
+            )
+        except TripoError as e:
+            logger.error("generate_3d_asset failed for %s: %s", asset_name, e)
+            return (
+                f"ERROR: 3D generation failed for '{asset_name}': {e}. "
+                "Fall back to built-in meshes (BoxMesh, SphereMesh, etc.)."
+            )
+        except Exception as e:
+            logger.error("generate_3d_asset unexpected error for %s: %s", asset_name, e)
+            return (
+                f"ERROR: unexpected failure generating '{asset_name}': {e}. "
+                "Fall back to built-in meshes."
+            )
 
     else:
         return f"ERROR: unknown tool {tool_name}"
@@ -158,8 +249,13 @@ def _build_asset_section(perspective: str = "2D") -> str:
         lines.append(f"  {name}: {path}")
 
     lines.append("")
-    lines.append("Particles (preload and instance):")
-    for name, path in PARTICLE_PATHS.items():
+    if perspective == "3D":
+        particle_paths = PARTICLE_PATHS_3D
+        lines.append("Particles (GPUParticles3D — preload and instance in 3D scenes):")
+    else:
+        particle_paths = PARTICLE_PATHS_2D
+        lines.append("Particles (GPUParticles2D — preload and instance):")
+    for name, path in particle_paths.items():
         lines.append(f"  {name}: {path}")
 
     if perspective == "2D":
@@ -233,6 +329,24 @@ def build_generator_system_prompt(perspective: str = "2D") -> str:
   BoxMesh, SphereMesh, CapsuleMesh, CylinderMesh, PlaneMesh, QuadMesh
   Example: var mesh_instance = MeshInstance3D.new(); mesh_instance.mesh = BoxMesh.new()
 - Set up a WorldEnvironment node with an Environment resource for ambient light and sky
+
+3D ASSET GENERATION (generate_3d_asset tool):
+You have access to an AI 3D model generator. You SHOULD use it to make the game visually
+appealing — games with real 3D models for key objects look dramatically better than games
+using only primitive meshes. Plan to use 3-5 assets per game for the most important entities.
+- Use for key game elements: player character, enemies, collectibles, vehicles, weapons
+- Do NOT waste assets on simple geometry (floors, walls, platforms) — use built-in meshes for those
+- Maximum 5 assets per game — budget them for the most visually important elements
+- Each asset is a .glb placed in res://assets/models/
+- Load and use in GDScript:
+    var scene = load("res://assets/models/asset_name.glb").instantiate()
+    scene.scale = Vector3(1, 1, 1)  # adjust scale as needed
+    add_child(scene)
+- The loaded scene is a full Node3D subtree — position, scale, and rotate it as needed
+- Generation takes ~30-60 seconds per asset — generate GDScript files first, call generate_3d_asset
+  for key assets, then generate .tscn scene files that reference the assets
+- If generation fails, the tool returns an error — fall back to built-in meshes
+- In .tscn files, do NOT reference .glb files as ext_resource — load them via GDScript at runtime
 
 """
 
@@ -332,15 +446,22 @@ GENERATOR_SYSTEM_PROMPT = build_generator_system_prompt("2D")
 # ---------------------------------------------------------------------------
 
 
-def _build_initial_prompt(spec: AgenticGameSpec) -> str:
+def _build_initial_prompt(spec: AgenticGameSpec, *, has_3d_assets: bool = False) -> str:
     """Build the initial user message from the game spec."""
     spec_json = json.dumps(spec.model_dump(), indent=2)
+    asset_hint = ""
+    if has_3d_assets:
+        asset_hint = (
+            " After writing the core scripts, use generate_3d_asset to create "
+            "3D models for the key entities (player, enemies, collectibles, etc.) "
+            "before generating scene files."
+        )
     return (
         f"Generate all files for this Godot 4 game project.\n\n"
         f"Game Specification:\n{spec_json}\n\n"
         f"Start generating files now. Call write_file for each file, "
         f"one at a time. Begin with the main gameplay scripts, then "
-        f"scene files (.tscn), then any auxiliary files."
+        f"scene files (.tscn), then any auxiliary files.{asset_hint}"
     )
 
 
@@ -377,6 +498,8 @@ async def run_file_generation(
     context_strategy: str = "full_history",
     fix_context: str | None = None,
     existing_files: dict[str, str] | None = None,
+    tripo: TripoAssetGenerator | None = None,
+    asset_counter: list[int] | None = None,
 ) -> tuple[dict[str, str], list[dict]]:
     """Run the multi-turn file generation agent loop.
 
@@ -393,17 +516,24 @@ async def run_file_generation(
             "stateless" resets each turn with a fresh prompt.
         existing_files: Pre-seed generated_files with files from prior
             iterations so read_file can access them during fix iterations.
+        tripo: Optional Tripo client for 3D asset generation.
+        asset_counter: Mutable single-element list tracking total assets
+            generated across iterations (shared with caller).
 
     Returns:
         Tuple of (generated_files dict, conversation messages list).
     """
     generated_files: dict[str, str] = dict(existing_files) if existing_files else {}
 
+    # Determine tools available for this run
+    use_3d_assets = tripo is not None and spec.perspective == "3D"
+    tools = AGENT_TOOLS_BASE + ([GENERATE_3D_ASSET_TOOL] if use_3d_assets else [])
+
     # Build initial messages — use fix_context if provided (targeted fix iteration)
     if fix_context is not None:
         initial_content = fix_context
     else:
-        initial_content = _build_initial_prompt(spec)
+        initial_content = _build_initial_prompt(spec, has_3d_assets=use_3d_assets)
     messages: list[dict] = [{"role": "user", "content": initial_content}]
 
     for turn in range(MAX_TURNS_PER_ITERATION):
@@ -420,7 +550,8 @@ async def run_file_generation(
             model=GENERATOR_MODEL,
             max_tokens=8192,
             system=build_generator_system_prompt(spec.perspective),
-            tools=AGENT_TOOLS,
+            tools=tools,
+            # thinking={"type": "adaptive"},
             messages=messages,
         )
 
@@ -435,8 +566,23 @@ async def run_file_generation(
         tool_results = []
         for block in response.content:
             if block.type == "tool_use":
+                # Emit a stage event before 3D asset generation (takes 30-60s)
+                if block.name == "generate_3d_asset":
+                    asset_name = block.input.get("asset_name", "unknown")
+                    await emit(
+                        ProgressEvent(
+                            type="stage_start",
+                            message=f"Generating 3D asset: {asset_name}...",
+                        )
+                    )
+
                 result_str = await _dispatch_tool(
-                    block.name, block.input, game_dir, generated_files
+                    block.name,
+                    block.input,
+                    game_dir,
+                    generated_files,
+                    tripo=tripo,
+                    asset_counter=asset_counter,
                 )
                 tool_results.append(
                     {
@@ -445,12 +591,27 @@ async def run_file_generation(
                         "content": result_str,
                     }
                 )
+                # Emit progress for asset generation calls
+                if block.name == "generate_3d_asset":
+                    asset_name = block.input.get("asset_name", "unknown")
+                    await emit(
+                        ProgressEvent(
+                            type="asset_generated",
+                            message=f"Generated 3D asset: {asset_name}",
+                            data={"asset_name": asset_name},
+                        )
+                    )
                 # Emit progress for write_file calls
                 if block.name == "write_file":
                     filename = block.input.get("filename", "unknown")
                     content = block.input.get("content", "")
                     line_count = content.count("\n") + 1 if content else 0
-                    logger.info("file_generated: %s — content length=%d, lines=%d", filename, len(content), line_count)
+                    logger.info(
+                        "file_generated: %s — content length=%d, lines=%d",
+                        filename,
+                        len(content),
+                        line_count,
+                    )
                     await emit(
                         ProgressEvent(
                             type="file_generated",

@@ -143,6 +143,15 @@ def test_3d_prompt_shader_annotation():
     assert "NOT to 3D mesh materials" in prompt
 
 
+def test_3d_prompt_particle_annotation():
+    prompt = build_generator_system_prompt("3D")
+    assert "GPUParticles3D" in prompt
+
+
+def test_2d_prompt_particle_annotation():
+    assert "GPUParticles2D" in GENERATOR_SYSTEM_PROMPT
+
+
 def test_2d_prompt_unchanged():
     """build_generator_system_prompt('2D') matches the module-level constant."""
     assert build_generator_system_prompt("2D") == GENERATOR_SYSTEM_PROMPT
