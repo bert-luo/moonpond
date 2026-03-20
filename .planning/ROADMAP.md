@@ -245,7 +245,7 @@ Plans:
   4. Exporter selects base_2d or base_3d template based on perspective
   5. base_3d template exists with 3D-compatible assets (no 2D-only control snippets or shaders)
   6. All existing 2D pipelines and tests are unaffected (backward compatible)
-**Plans:** 2 plans
+**Plans:** 2/2 plans complete
 
 Plans:
 - [ ] 09-01-PLAN.md — Schema perspective field, spec generator updates, base_3d template creation

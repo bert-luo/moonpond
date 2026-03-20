@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in-progress
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-03-20T08:11:16Z"
-last_activity: 2026-03-20 — Completed 09-01-PLAN.md
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-03-20T08:17:12Z"
+last_activity: 2026-03-20 — Completed 09-02-PLAN.md
 progress:
   total_phases: 13
   completed_phases: 9
   total_plans: 33
-  completed_plans: 29
-  percent: 90
+  completed_plans: 30
+  percent: 100
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-03-13)
 ## Current Position
 
 Phase: 9 of 9 (Add 3D Game Generation Support)
-Plan: 1 of 2 in current phase
-Status: In Progress
-Last activity: 2026-03-20 — Completed 09-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Complete
+Last activity: 2026-03-20 — Completed 09-02-PLAN.md
 
-Progress: [█████████░] 88%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Progress: [█████████░] 88%
 | Phase 08 P01 | 11min | 2 tasks | 6 files |
 | Phase 08 P02 | 12min | 1 tasks | 2 files |
 | Phase 09 P01 | 1min | 2 tasks | 45 files |
+| Phase 09 P02 | 4min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -150,6 +151,9 @@ Recent decisions affecting current work:
 - [Phase 09]: perspective field defaults to '2D' for full backward compatibility with existing specs
 - [Phase 09]: glow and chromatic_aberration shaders included in 3D template (canvas_item, usable on CanvasLayer/UI overlays)
 - [Phase 09]: control_snippets excluded from 3D template (Node2D scripts, not applicable to 3D)
+- [Phase 09]: build_generator_system_prompt() shares dimension-agnostic content, branches on perspective-specific sections
+- [Phase 09]: 3D prompt annotates shaders as CanvasLayer/UI only, not for 3D mesh materials
+- [Phase 09]: GENERATOR_SYSTEM_PROMPT backward-compat constant = build_generator_system_prompt('2D')
 
 ### Roadmap Evolution
 
@@ -174,6 +178,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-20T08:11:16Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-03-20T08:17:12Z
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
