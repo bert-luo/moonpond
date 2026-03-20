@@ -290,6 +290,9 @@ Simply respond with a text summary of what you built.
 - Do NOT generate audio, sound effects, or music. No AudioStreamPlayer, AudioStreamWAV, \
 AudioStreamGenerator, or AudioManager. The pipeline has no audio asset support — audio \
 code wastes tokens and may cause runtime errors.
+- Use only ASCII characters in UI text (Label.text, Button.text, etc.). Godot's default \
+font does not include Unicode symbols in WASM exports, so non-ASCII characters render as \
+missing glyphs.
 
 PROJECT.GODOT — when generating project.godot, ALWAYS include these sections verbatim:
 
