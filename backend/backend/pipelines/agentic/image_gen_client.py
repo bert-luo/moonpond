@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_MODEL = "gpt-image-1-mini"
 MAX_SPRITESHEET_FRAMES = 8
-ASSET_BUDGET = 8  # max assets per game
+ASSET_BUDGET = 20  # max assets per game
 
 
 class AssetMode(str, Enum):
@@ -386,7 +386,11 @@ class ImageGenClient:
             trim=caller_config.trim,
             target_size=caller_config.target_size or inferred.target_size,
             outline=caller_config.outline or inferred.outline,
-            outline_color=caller_config.outline_color if caller_config.outline else inferred.outline_color,
+            outline_color=(
+                caller_config.outline_color
+                if caller_config.outline
+                else inferred.outline_color
+            ),
             quantize_colors=caller_config.quantize_colors or inferred.quantize_colors,
         )
 

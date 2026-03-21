@@ -21,7 +21,7 @@ TRIPO_MODEL_VERSION = "P1-20260311"  # optimized for low-poly game assets
 # Poll settings
 POLL_INITIAL_DELAY = 2.0  # seconds
 POLL_MAX_DELAY = 10.0
-POLL_TIMEOUT = 180.0  # total seconds before giving up
+POLL_TIMEOUT = 200.0  # total seconds before giving up
 
 TERMINAL_STATUSES = frozenset({"SUCCESS", "FAILED", "CANCELLED", "BANNED", "EXPIRED"})
 
@@ -130,7 +130,9 @@ class TripoAssetGenerator:
                 raise TripoError(f"Tripo poll error: {data}")
 
             status = data["data"]["status"]
-            logger.debug("Tripo task %s status: %s (%.0fs elapsed)", task_id, status, elapsed)
+            logger.debug(
+                "Tripo task %s status: %s (%.0fs elapsed)", task_id, status, elapsed
+            )
 
             if status == "SUCCESS":
                 # Extract GLB download URL from output
