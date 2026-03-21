@@ -1,5 +1,7 @@
 # moonpond
 
+![Moonpond](assets/home.png)
+
 AI-powered Godot game generator. Describe a game in natural language, and Moonpond generates a playable browser game using Godot 4 + WebAssembly. Supports both 2D and 3D games with AI-generated visual assets (sprites, 3D models).
 
 ## Running the Backend Locally
@@ -25,13 +27,6 @@ uv run uvicorn backend.main:app --reload --port 8000
 
 The API server runs at `http://localhost:8000`.
 
-### Tests
-
-```bash
-cd backend
-uv run pytest
-```
-
 ## Running the Frontend
 
 ### Prerequisites
@@ -47,13 +42,6 @@ npm run dev
 ```
 
 The dev server runs at `http://localhost:3001`. It connects to the backend at `http://localhost:8000`.
-
-### Tests
-
-```bash
-cd frontend
-npm test
-```
 
 ## Running the Backend with Docker
 
@@ -97,21 +85,14 @@ If you change backend code, rebuild and restart:
 docker compose up --build
 ```
 
-## Pipeline Selection
-
-The backend supports multiple generation strategies. The default (`agentic`) is the production pipeline:
+## Tests
 
 ```bash
-# Default — agentic pipeline (recommended)
-curl -X POST http://localhost:8000/api/generate \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "a space shooter with neon aesthetics"}'
+# Backend
+cd backend
+uv run pytest
 
-# Alternative — contract pipeline
-curl -X POST "http://localhost:8000/api/generate?pipeline=contract" \
-  -H "Content-Type: application/json" \
-  -d '{"prompt": "a platformer with pixel art"}'
+# Frontend
+cd frontend
+npm test
 ```
-
-Available pipelines: `agentic` (default), `contract`, `multi_stage`, `stub`.
-Note: agentic pipeline is the only one that works
