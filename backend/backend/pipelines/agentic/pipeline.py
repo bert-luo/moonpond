@@ -205,16 +205,29 @@ class AgenticPipeline:
             all_files: dict[str, str] = {}
             fix_ctx: str | None = None
 
+            # Track whether we've already granted the post-timeout grace iteration
+            grace_iteration_used = False
+
             for iteration in range(1, MAX_ITERATIONS + 1):
-                # Soft timeout: skip further fix iterations, go straight to export
+                # Soft timeout: allow one grace fix iteration if verifier found
+                # critical issues, then stop.
                 if iteration > 1 and soft_timeout and soft_timeout.is_expired:
+                    if grace_iteration_used or fix_ctx is None:
+                        await emit(
+                            ProgressEvent(
+                                type="stage_start",
+                                message="Soft timeout reached — proceeding to build...",
+                            )
+                        )
+                        break
+                    # Grant one final fix iteration to address verifier criticisms
+                    grace_iteration_used = True
                     await emit(
                         ProgressEvent(
                             type="stage_start",
-                            message="Soft timeout reached — skipping fix iteration, proceeding to build...",
+                            message="Soft timeout reached — running one final fix iteration for critical issues...",
                         )
                     )
-                    break
 
                 await emit(
                     ProgressEvent(

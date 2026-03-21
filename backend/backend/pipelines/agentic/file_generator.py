@@ -7,6 +7,7 @@ the run_file_generation loop that drives the multi-turn conversation.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -87,7 +88,9 @@ GENERATE_3D_ASSET_TOOL = {
         "Use ONLY for key visual elements (player character, enemies, vehicles, "
         "collectibles, weapons) — NOT for simple geometry like floors, walls, or "
         "platforms which should use built-in meshes (BoxMesh, SphereMesh, etc.). "
-        "Maximum 5 assets per game. Each call takes ~30-60 seconds."
+        "Maximum 5 assets per game. Each call takes ~30-60 seconds. "
+        "You can call this tool multiple times in a single response to generate "
+        "assets in parallel — this is strongly encouraged to save time."
     ),
     "input_schema": {
         "type": "object",
@@ -121,7 +124,9 @@ GENERATE_2D_ASSET_TOOL = {
         "For animated entities, set spritesheet=true to generate a multi-frame spritesheet. "
         "Use for key visual elements (player, enemies, items, NPCs) — NOT for simple "
         "rectangles or shapes that can be drawn with ColorRect or draw_rect(). "
-        "Maximum 8 assets per game. Each call takes ~10-30 seconds."
+        "Maximum 8 assets per game. Each call takes ~10-30 seconds. "
+        "You can call this tool multiple times in a single response to generate "
+        "assets in parallel — this is strongly encouraged to save time."
     ),
     "input_schema": {
         "type": "object",
@@ -174,6 +179,9 @@ MAX_TURNS_PER_ITERATION = 30
 MAX_3D_ASSETS = 5
 MAX_2D_ASSETS = 8
 
+# Asset generation tool names (eligible for parallel dispatch)
+_ASSET_TOOLS = frozenset(("generate_3d_asset", "generate_2d_asset"))
+
 # Default post-processing for pipeline-generated 2D assets
 _PIPELINE_POST_PROCESS = PostProcessConfig(trim=True)
 
@@ -191,6 +199,7 @@ async def _dispatch_tool(
     tripo: TripoAssetGenerator | None = None,
     image_gen: ImageGenClient | None = None,
     asset_counter: list[int] | None = None,
+    budget_remaining: int | None = None,
 ) -> str:
     """Execute a tool call and return the result string for tool_result.
 
@@ -203,6 +212,9 @@ async def _dispatch_tool(
         tripo: Optional Tripo client for 3D asset generation.
         image_gen: Optional ImageGenClient for 2D sprite generation.
         asset_counter: Mutable single-element list tracking assets generated.
+        budget_remaining: When not None, caller has already reserved a budget
+            slot — skip the budget check/increment and use this value for the
+            "remaining" message.  On failure the caller releases the slot.
 
     Returns:
         A string result to send back as tool_result content.
@@ -235,12 +247,14 @@ async def _dispatch_tool(
         if tripo is None:
             return "ERROR: 3D asset generation not available (no API key configured)"
 
-        counter = asset_counter or [0]
-        if counter[0] >= MAX_3D_ASSETS:
-            return (
-                f"ERROR: asset budget exhausted ({MAX_3D_ASSETS}/{MAX_3D_ASSETS} used). "
-                "Use built-in meshes (BoxMesh, SphereMesh, etc.) for remaining objects."
-            )
+        # Budget check — skip when caller pre-reserved a slot (parallel dispatch)
+        if budget_remaining is None:
+            counter = asset_counter or [0]
+            if counter[0] >= MAX_3D_ASSETS:
+                return (
+                    f"ERROR: asset budget exhausted ({MAX_3D_ASSETS}/{MAX_3D_ASSETS} used). "
+                    "Use built-in meshes (BoxMesh, SphereMesh, etc.) for remaining objects."
+                )
 
         asset_name = tool_input.get("asset_name", "")
         prompt = tool_input.get("prompt", "")
@@ -250,8 +264,11 @@ async def _dispatch_tool(
 
         try:
             await tripo.generate_3d_asset(prompt=prompt, dest=dest)
-            counter[0] += 1
-            remaining = MAX_3D_ASSETS - counter[0]
+            if budget_remaining is None:
+                counter[0] += 1
+                remaining = MAX_3D_ASSETS - counter[0]
+            else:
+                remaining = budget_remaining
             res_path = f"res://assets/models/{asset_name}.glb"
             return (
                 f"OK: generated {res_path} ({dest.stat().st_size} bytes). "
@@ -278,12 +295,14 @@ async def _dispatch_tool(
         if image_gen is None:
             return "ERROR: 2D asset generation not available (no API key configured)"
 
-        counter = asset_counter or [0]
-        if counter[0] >= MAX_2D_ASSETS:
-            return (
-                f"ERROR: asset budget exhausted ({MAX_2D_ASSETS}/{MAX_2D_ASSETS} used). "
-                "Use ColorRect or draw_rect() for remaining visuals."
-            )
+        # Budget check — skip when caller pre-reserved a slot (parallel dispatch)
+        if budget_remaining is None:
+            counter = asset_counter or [0]
+            if counter[0] >= MAX_2D_ASSETS:
+                return (
+                    f"ERROR: asset budget exhausted ({MAX_2D_ASSETS}/{MAX_2D_ASSETS} used). "
+                    "Use ColorRect or draw_rect() for remaining visuals."
+                )
 
         asset_name = tool_input.get("asset_name", "")
         prompt = tool_input.get("prompt", "")
@@ -302,8 +321,11 @@ async def _dispatch_tool(
                     num_frames=min(num_frames, 6),
                     post_process=_PIPELINE_POST_PROCESS,
                 )
-                counter[0] += 1
-                remaining = MAX_2D_ASSETS - counter[0]
+                if budget_remaining is None:
+                    counter[0] += 1
+                    remaining = MAX_2D_ASSETS - counter[0]
+                else:
+                    remaining = budget_remaining
                 res_path = f"res://assets/sprites/{asset_name}.png"
                 fw, fh = asset.frame_size
                 n = asset.frame_count
@@ -330,8 +352,11 @@ async def _dispatch_tool(
                     dest=dest,
                     post_process=_PIPELINE_POST_PROCESS,
                 )
-                counter[0] += 1
-                remaining = MAX_2D_ASSETS - counter[0]
+                if budget_remaining is None:
+                    counter[0] += 1
+                    remaining = MAX_2D_ASSETS - counter[0]
+                else:
+                    remaining = budget_remaining
                 res_path = f"res://assets/sprites/{asset_name}.png"
                 return (
                     f"OK: generated {res_path} ({asset.image.width}x{asset.image.height}). "
@@ -483,8 +508,8 @@ ColorRect and primitive shapes. Plan to use 3-5 assets per game for the most imp
         frames.add_frame("default", atlas)
     var anim_sprite = AnimatedSprite2D.new()
     anim_sprite.sprite_frames = frames
-- Generation takes ~10-30 seconds per asset — generate GDScript files first, call generate_2d_asset
-  for key entities, then generate .tscn scene files that reference the sprites
+- Generation takes ~10-30 seconds per asset — generate GDScript files first, then call generate_2d_asset
+  for ALL key entities in a SINGLE response (they run in parallel), then generate .tscn scene files
 - If generation fails, the tool returns an error — fall back to ColorRect with a solid color
 - In .tscn files, do NOT reference generated .png files as ext_resource — load them via GDScript at runtime
 
@@ -517,8 +542,8 @@ using only primitive meshes. Plan to use 3-5 assets per game for the most import
     scene.scale = Vector3(1, 1, 1)  # adjust scale as needed
     add_child(scene)
 - The loaded scene is a full Node3D subtree — position, scale, and rotate it as needed
-- Generation takes ~30-60 seconds per asset — generate GDScript files first, call generate_3d_asset
-  for key assets, then generate .tscn scene files that reference the assets
+- Generation takes ~30-60 seconds per asset — generate GDScript files first, then call generate_3d_asset
+  for ALL key assets in a SINGLE response (they run in parallel), then generate .tscn scene files
 - If generation fails, the tool returns an error — fall back to built-in meshes
 - In .tscn files, do NOT reference .glb files as ext_resource — load them via GDScript at runtime
 
@@ -632,15 +657,16 @@ def _build_initial_prompt(
     asset_hint = ""
     if has_3d_assets:
         asset_hint = (
-            " After writing the core scripts, use generate_3d_asset to create "
-            "3D models for the key entities (player, enemies, collectibles, etc.) "
-            "before generating scene files."
+            " After writing the core scripts, call generate_3d_asset for ALL key "
+            "entities (player, enemies, collectibles, etc.) in a single response "
+            "so they generate in parallel. Then generate scene files."
         )
     elif has_2d_assets:
         asset_hint = (
-            " After writing the core scripts, use generate_2d_asset to create "
-            "sprites for the key entities (player, enemies, collectibles, etc.) "
-            "before generating scene files. Use spritesheet=true for animated entities."
+            " After writing the core scripts, call generate_2d_asset for ALL key "
+            "entities (player, enemies, collectibles, etc.) in a single response "
+            "so they generate in parallel. Use spritesheet=true for animated entities. "
+            "Then generate scene files."
         )
     return (
         f"Generate all files for this Godot 4 game project.\n\n"
@@ -767,21 +793,17 @@ async def run_file_generation(
         if response.stop_reason == "end_turn":
             break
 
-        # Process tool_use blocks
-        tool_results = []
+        # Process tool_use blocks — asset generation runs in parallel,
+        # everything else (write_file, read_file) runs sequentially.
+        tool_results: list[dict] = []
+        asset_blocks: list = []
         for block in response.content:
-            if block.type == "tool_use":
-                # Emit a stage event before asset generation (takes 10-60s)
-                if block.name in ("generate_3d_asset", "generate_2d_asset"):
-                    asset_name = block.input.get("asset_name", "unknown")
-                    dim = "3D" if block.name == "generate_3d_asset" else "2D"
-                    await emit(
-                        ProgressEvent(
-                            type="stage_start",
-                            message=f"Generating {dim} asset: {asset_name}...",
-                        )
-                    )
-
+            if block.type != "tool_use":
+                continue
+            if block.name in _ASSET_TOOLS:
+                asset_blocks.append(block)
+            else:
+                # Sequential dispatch for write_file / read_file
                 result_str = await _dispatch_tool(
                     block.name,
                     block.input,
@@ -798,18 +820,6 @@ async def run_file_generation(
                         "content": result_str,
                     }
                 )
-                # Emit progress for asset generation calls
-                if block.name in ("generate_3d_asset", "generate_2d_asset"):
-                    asset_name = block.input.get("asset_name", "unknown")
-                    dim = "3D" if block.name == "generate_3d_asset" else "2D"
-                    await emit(
-                        ProgressEvent(
-                            type="asset_generated",
-                            message=f"Generated {dim} asset: {asset_name}",
-                            data={"asset_name": asset_name},
-                        )
-                    )
-                # Emit progress for write_file calls
                 if block.name == "write_file":
                     filename = block.input.get("filename", "unknown")
                     content = block.input.get("content", "")
@@ -827,6 +837,110 @@ async def run_file_generation(
                             data={"filename": filename, "line_count": line_count},
                         )
                     )
+
+        # --- Parallel asset generation ---
+        if asset_blocks:
+            counter = asset_counter or [0]
+            is_3d = spec.perspective == "3D"
+            max_assets = MAX_3D_ASSETS if is_3d else MAX_2D_ASSETS
+
+            # Pre-reserve budget slots (no awaits here, so no race)
+            approved: list[tuple] = []  # (block, remaining_after)
+            for block in asset_blocks:
+                if counter[0] < max_assets:
+                    counter[0] += 1
+                    remaining = max_assets - counter[0]
+                    approved.append((block, remaining))
+                else:
+                    dim = "3D" if block.name == "generate_3d_asset" else "2D"
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": (
+                                f"ERROR: asset budget exhausted "
+                                f"({max_assets}/{max_assets} used). "
+                                + (
+                                    "Use built-in meshes (BoxMesh, SphereMesh, etc.) "
+                                    "for remaining objects."
+                                    if dim == "3D"
+                                    else "Use ColorRect or draw_rect() for remaining visuals."
+                                )
+                            ),
+                        }
+                    )
+
+            if approved:
+                # Emit stage_start for all approved assets upfront
+                for block, _ in approved:
+                    asset_name = block.input.get("asset_name", "unknown")
+                    dim = "3D" if block.name == "generate_3d_asset" else "2D"
+                    await emit(
+                        ProgressEvent(
+                            type="stage_start",
+                            message=f"Generating {dim} asset: {asset_name}...",
+                        )
+                    )
+
+                if len(approved) > 1:
+                    logger.info(
+                        "Dispatching %d asset generations in parallel",
+                        len(approved),
+                    )
+
+                # Launch all approved asset generations concurrently
+                gather_results = await asyncio.gather(
+                    *(
+                        _dispatch_tool(
+                            block.name,
+                            block.input,
+                            game_dir,
+                            generated_files,
+                            tripo=tripo,
+                            image_gen=image_gen,
+                            asset_counter=asset_counter,
+                            budget_remaining=remaining,
+                        )
+                        for block, remaining in approved
+                    ),
+                    return_exceptions=True,
+                )
+
+                for (block, _remaining), result in zip(approved, gather_results):
+                    if isinstance(result, BaseException):
+                        # Release the pre-reserved budget slot on failure
+                        counter[0] -= 1
+                        asset_name = block.input.get("asset_name", "unknown")
+                        logger.error(
+                            "Parallel asset generation failed for %s: %s",
+                            asset_name,
+                            result,
+                        )
+                        result_str = (
+                            f"ERROR: asset generation failed for '{asset_name}': "
+                            f"{result}. Fall back to primitives."
+                        )
+                    else:
+                        result_str = result
+
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": result_str,
+                        }
+                    )
+                    # Emit asset_generated for successful results
+                    if not isinstance(result, BaseException):
+                        asset_name = block.input.get("asset_name", "unknown")
+                        dim = "3D" if block.name == "generate_3d_asset" else "2D"
+                        await emit(
+                            ProgressEvent(
+                                type="asset_generated",
+                                message=f"Generated {dim} asset: {asset_name}",
+                                data={"asset_name": asset_name, "dim": dim},
+                            )
+                        )
 
         # Defensive: no tool results means nothing to continue with
         if not tool_results:

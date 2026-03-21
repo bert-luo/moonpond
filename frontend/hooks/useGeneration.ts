@@ -88,7 +88,7 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
         try {
           const event = JSON.parse(me.data);
           const d = event.data ?? {};
-          dispatch({ type: 'SSE_ASSET_GENERATED', sessionId, assetName: d.asset_name ?? 'unknown' });
+          dispatch({ type: 'SSE_ASSET_GENERATED', sessionId, assetName: d.asset_name ?? 'unknown', dim: d.dim ?? '2D' });
         } catch { /* ignore parse errors */ }
       });
 

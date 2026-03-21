@@ -71,7 +71,7 @@ export type GenerationAction =
   | { type: 'SSE_STAGE'; sessionId: string; message: string }
   | { type: 'SSE_SPEC_COMPLETE'; sessionId: string; title: string; description: string }
   | { type: 'SSE_FILE_WRITTEN'; sessionId: string; filename: string; lines: number }
-  | { type: 'SSE_ASSET_GENERATED'; sessionId: string; assetName: string }
+  | { type: 'SSE_ASSET_GENERATED'; sessionId: string; assetName: string; dim: string }
   | { type: 'SSE_DONE'; sessionId: string; gameUrl: string; controls: ControlMapping[] }
   | { type: 'SSE_ERROR'; sessionId: string; message: string }
   | { type: 'RESET'; sessionId: string };
@@ -177,8 +177,8 @@ export function generationReducer(
             {
               id: crypto.randomUUID(),
               type: 'asset_generated' as const,
-              text: `Generated 3D asset: ${action.assetName}`,
-              data: { assetName: action.assetName },
+              text: `Generated ${action.dim ?? '2D'} asset: ${action.assetName}`,
+              data: { assetName: action.assetName, dim: action.dim ?? '2D' },
             },
           ],
         })),

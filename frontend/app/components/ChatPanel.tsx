@@ -81,7 +81,7 @@ export function ChatPanel({ session, onSubmit, onReset }: ChatPanelProps) {
             ) : msg.type === 'asset_generated' ? (
               <div className="max-w-[90%] rounded-lg px-3 py-2 text-sm bg-[var(--color-surface)] text-[var(--color-text-muted)]">
                 <span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-500 mr-2 align-middle" />
-                <span>3D asset: {msg.data?.assetName as string}</span>
+                <span>{(msg.data?.dim as string) ?? '2D'} asset: {msg.data?.assetName as string}</span>
               </div>
             ) : msg.type === 'controls' ? (
               <div className="max-w-[90%] bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-3">
