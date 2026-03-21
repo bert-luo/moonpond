@@ -2,7 +2,7 @@
 
 Generates individual sprites or multi-frame spritesheets using the OpenAI
 gpt-image-1 API with parametric post-processing (trim, resize, palette
-quantization, outline) via Pillow.
+quantization) via Pillow.
 """
 
 from __future__ import annotations
@@ -39,8 +39,6 @@ class PostProcessConfig:
 
     trim: bool = True  # auto-crop transparent padding
     target_size: tuple[int, int] | None = None  # resize to (w, h) if set
-    outline: bool = False  # add 1px dark outline around opaque pixels
-    outline_color: tuple[int, int, int, int] = (0, 0, 0, 255)
     quantize_colors: int | None = None  # reduce to N colors if set
 
 
@@ -385,12 +383,6 @@ class ImageGenClient:
         return PostProcessConfig(
             trim=caller_config.trim,
             target_size=caller_config.target_size or inferred.target_size,
-            outline=caller_config.outline or inferred.outline,
-            outline_color=(
-                caller_config.outline_color
-                if caller_config.outline
-                else inferred.outline_color
-            ),
             quantize_colors=caller_config.quantize_colors or inferred.quantize_colors,
         )
 
@@ -399,11 +391,10 @@ class ImageGenClient:
         system = (
             "You analyze 2D game sprite prompts and recommend post-processing settings. "
             "Return ONLY a JSON object with these optional fields:\n"
-            '- "outline": boolean — true for pixel art, retro, or styles that benefit from a dark outline\n'
             '- "quantize_colors": integer or null — number of colors for palette reduction '
             "(e.g. 16-32 for pixel art, 48-64 for retro, null for painterly/realistic styles)\n"
             "Be conservative: only set values when the art style clearly calls for them. "
-            "Most modern/cartoon/colorful styles should get no outline and no quantization."
+            "Most modern/cartoon/colorful styles should get no quantization."
         )
         user_msg = f'Sprite prompt: "{prompt}"\n\nReturn JSON object with post-processing recommendations.'
 
@@ -423,20 +414,17 @@ class ImageGenClient:
                 text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
             data = json.loads(text)
 
-            outline = bool(data.get("outline", False))
             quantize = data.get("quantize_colors")
             if quantize is not None:
                 quantize = max(8, min(int(quantize), 256))
 
             config = PostProcessConfig(
                 trim=True,
-                outline=outline,
                 quantize_colors=quantize,
             )
             logger.info(
-                "Inferred post-process for '%.60s': outline=%s, quantize=%s",
+                "Inferred post-process for '%.60s': quantize=%s",
                 prompt,
-                outline,
                 quantize,
             )
             return config
@@ -579,10 +567,6 @@ class ImageGenClient:
         if config.target_size:
             img = img.resize(config.target_size, Image.LANCZOS)
 
-        # Add outline
-        if config.outline:
-            img = _add_outline(img, config.outline_color)
-
         # Color quantization
         if config.quantize_colors:
             img = _quantize(img, config.quantize_colors)
@@ -602,37 +586,6 @@ def _trim_transparent(img: Image.Image) -> Image.Image:
     if bbox is None:
         return img  # fully transparent, nothing to trim
     return img.crop(bbox)
-
-
-def _add_outline(img: Image.Image, color: tuple[int, int, int, int]) -> Image.Image:
-    """Add a 1px outline around opaque pixels by expanding the alpha mask."""
-    if img.mode != "RGBA":
-        return img
-
-    from PIL import ImageFilter
-
-    alpha = img.getchannel("A")
-    # Dilate alpha by 1px
-    dilated = alpha.filter(ImageFilter.MaxFilter(3))
-
-    # Create outline mask: pixels that are in dilated but not in original
-    outline_mask = Image.new("L", img.size, 0)
-    for y in range(img.height):
-        for x in range(img.width):
-            d = dilated.getpixel((x, y))
-            a = alpha.getpixel((x, y))
-            if d > 0 and a == 0:
-                outline_mask.putpixel((x, y), 255)
-
-    # Create outline layer
-    outline_layer = Image.new("RGBA", img.size, color)
-    outline_layer.putalpha(outline_mask)
-
-    # Composite: outline behind original
-    result = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    result = Image.alpha_composite(result, outline_layer)
-    result = Image.alpha_composite(result, img)
-    return result
 
 
 def _quantize(img: Image.Image, n_colors: int) -> Image.Image:

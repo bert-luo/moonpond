@@ -15,7 +15,7 @@ Usage (run from backend/):
     uv run python ../scripts/generate_2d_asset.py --spritesheet --num-frames 6 "A pixel art knight walk cycle"
 
     # With post-processing
-    uv run python ../scripts/generate_2d_asset.py "A pixel art tree" --trim --outline --resize 64 64
+    uv run python ../scripts/generate_2d_asset.py "A pixel art tree" --trim --resize 64 64
 
     # Save to file
     uv run python ../scripts/generate_2d_asset.py "A pixel art gem" -o gem.png
@@ -61,7 +61,6 @@ def parse_args() -> argparse.Namespace:
     # Post-processing
     pp = p.add_argument_group("post-processing")
     pp.add_argument("--trim", action="store_true", help="Auto-crop transparent padding")
-    pp.add_argument("--outline", action="store_true", help="Add 1px dark outline")
     pp.add_argument("--resize", type=int, nargs=2, metavar=("W", "H"), help="Resize to WxH")
     pp.add_argument("--quantize", type=int, metavar="N", help="Reduce to N colors")
     pp.add_argument("--no-display", action="store_true", help="Skip popup display")
@@ -75,7 +74,6 @@ async def main() -> None:
     pp = PostProcessConfig(
         trim=args.trim,
         target_size=tuple(args.resize) if args.resize else None,
-        outline=args.outline,
         quantize_colors=args.quantize,
     )
 
