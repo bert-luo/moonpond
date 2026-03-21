@@ -162,6 +162,22 @@ GENERATE_2D_ASSET_TOOL = {
                     "Ignored if spritesheet is false."
                 ),
             },
+            "target_width": {
+                "type": "integer",
+                "description": (
+                    "Target width in pixels for the final sprite (after trimming). "
+                    "Use this to control the in-game size: e.g. 64 for small "
+                    "collectibles, 128-256 for characters, 512+ for large backgrounds. "
+                    "For spritesheets this is the per-frame width. Optional."
+                ),
+            },
+            "target_height": {
+                "type": "integer",
+                "description": (
+                    "Target height in pixels for the final sprite (after trimming). "
+                    "For spritesheets this is the per-frame height. Optional."
+                ),
+            },
         },
         "required": ["asset_name", "prompt"],
     },
@@ -182,8 +198,6 @@ MAX_2D_ASSETS = 8
 # Asset generation tool names (eligible for parallel dispatch)
 _ASSET_TOOLS = frozenset(("generate_3d_asset", "generate_2d_asset"))
 
-# Default post-processing for pipeline-generated 2D assets
-_PIPELINE_POST_PROCESS = PostProcessConfig(trim=True)
 
 # ---------------------------------------------------------------------------
 # Tool dispatch
@@ -308,8 +322,16 @@ async def _dispatch_tool(
         prompt = tool_input.get("prompt", "")
         is_spritesheet = tool_input.get("spritesheet", False)
         num_frames = tool_input.get("num_frames", 4)
+        target_w = tool_input.get("target_width")
+        target_h = tool_input.get("target_height")
         if not asset_name or not prompt:
             return "ERROR: generate_2d_asset requires 'asset_name' and 'prompt' parameters"
+
+        # Build per-call post-process config with optional LLM-specified size
+        post_process = PostProcessConfig(
+            trim=True,
+            target_size=(target_w, target_h) if target_w and target_h else None,
+        )
 
         dest = game_dir / "assets" / "sprites" / f"{asset_name}.png"
 
@@ -319,7 +341,7 @@ async def _dispatch_tool(
                     prompt=prompt,
                     dest=dest,
                     num_frames=min(num_frames, 6),
-                    post_process=_PIPELINE_POST_PROCESS,
+                    post_process=post_process,
                 )
                 if budget_remaining is None:
                     counter[0] += 1
@@ -350,7 +372,7 @@ async def _dispatch_tool(
                 asset = await image_gen.generate(
                     prompt=prompt,
                     dest=dest,
-                    post_process=_PIPELINE_POST_PROCESS,
+                    post_process=post_process,
                 )
                 if budget_remaining is None:
                     counter[0] += 1

@@ -119,6 +119,9 @@ class ImageGenClient:
         Returns:
             GeneratedAsset with the final image.
         """
+        # Infer style-based post-processing and merge with caller config
+        post_process = await self._resolve_post_process(prompt, post_process)
+
         full_prompt = self._build_prompt(prompt)
         logger.info(
             "Generating single asset: %.80s (model=%s)", full_prompt, self._model
@@ -184,6 +187,9 @@ class ImageGenClient:
         Returns:
             GeneratedAsset with the composited spritesheet.
         """
+        # Infer style-based post-processing and merge with caller config
+        post_process = await self._resolve_post_process(prompt, post_process)
+
         # Resolve frame descriptions (LLM-powered decomposition)
         resolved_frames = await self._resolve_frame_prompts(
             prompt,
@@ -356,6 +362,83 @@ class ImageGenClient:
         if not isinstance(frames, list) or not all(isinstance(f, str) for f in frames):
             raise ValueError(f"Expected list of strings, got: {type(frames)}")
         return frames
+
+    # ── Style-based post-process inference ─────────────────────────────────
+
+    async def _resolve_post_process(
+        self,
+        prompt: str,
+        caller_config: PostProcessConfig | None,
+    ) -> PostProcessConfig:
+        """Merge caller-provided config with LLM-inferred style post-processing.
+
+        Caller-provided fields (e.g. target_size from the game-gen LLM) take
+        precedence.  Style fields (outline, quantize_colors) are inferred from
+        the prompt by gpt-4o-mini when not already set by the caller.
+        """
+        inferred = await self._infer_style_post_process(prompt)
+
+        if caller_config is None:
+            return inferred
+
+        # Merge: caller wins for target_size, inferred wins for style fields
+        return PostProcessConfig(
+            trim=caller_config.trim,
+            target_size=caller_config.target_size or inferred.target_size,
+            outline=caller_config.outline or inferred.outline,
+            outline_color=caller_config.outline_color if caller_config.outline else inferred.outline_color,
+            quantize_colors=caller_config.quantize_colors or inferred.quantize_colors,
+        )
+
+    async def _infer_style_post_process(self, prompt: str) -> PostProcessConfig:
+        """Ask gpt-4o-mini to infer post-processing params from the asset prompt."""
+        system = (
+            "You analyze 2D game sprite prompts and recommend post-processing settings. "
+            "Return ONLY a JSON object with these optional fields:\n"
+            '- "outline": boolean — true for pixel art, retro, or styles that benefit from a dark outline\n'
+            '- "quantize_colors": integer or null — number of colors for palette reduction '
+            "(e.g. 16-32 for pixel art, 48-64 for retro, null for painterly/realistic styles)\n"
+            "Be conservative: only set values when the art style clearly calls for them. "
+            "Most modern/cartoon/colorful styles should get no outline and no quantization."
+        )
+        user_msg = f'Sprite prompt: "{prompt}"\n\nReturn JSON object with post-processing recommendations.'
+
+        try:
+            resp = await self._client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_msg},
+                ],
+                temperature=0.0,
+                max_tokens=100,
+            )
+
+            text = resp.choices[0].message.content.strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+            data = json.loads(text)
+
+            outline = bool(data.get("outline", False))
+            quantize = data.get("quantize_colors")
+            if quantize is not None:
+                quantize = max(8, min(int(quantize), 256))
+
+            config = PostProcessConfig(
+                trim=True,
+                outline=outline,
+                quantize_colors=quantize,
+            )
+            logger.info(
+                "Inferred post-process for '%.60s': outline=%s, quantize=%s",
+                prompt,
+                outline,
+                quantize,
+            )
+            return config
+        except Exception as e:
+            logger.warning("Style post-process inference failed: %s", e)
+            return PostProcessConfig(trim=True)
 
     # ── API call ──────────────────────────────────────────────────────────
 
