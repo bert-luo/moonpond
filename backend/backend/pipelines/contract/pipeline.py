@@ -55,7 +55,7 @@ class ContractPipeline:
     """
 
     def __init__(self) -> None:
-        self._client = AsyncAnthropic()
+        self._client = AsyncAnthropic(max_retries=5)
 
     async def generate(
         self,

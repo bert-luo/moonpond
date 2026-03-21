@@ -25,7 +25,7 @@ from .pipelines.base import SoftTimeout
 from .pipelines.registry import PIPELINES
 from .state import active_jobs
 
-SOFT_TIMEOUT_S: float = 750
+SOFT_TIMEOUT_S: float = 900
 """Seconds before the pipeline receives a soft-stop signal."""
 
 HEARTBEAT_INTERVAL_S: int = 15

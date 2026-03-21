@@ -35,7 +35,7 @@ class MultiStagePipeline:
     """
 
     def __init__(self, *, skip_polish: bool = True) -> None:
-        self._client = AsyncAnthropic()
+        self._client = AsyncAnthropic(max_retries=5)
         self._skip_polish = skip_polish
 
     async def generate(

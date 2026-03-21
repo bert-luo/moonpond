@@ -158,7 +158,7 @@ GENERATE_2D_ASSET_TOOL = {
             "num_frames": {
                 "type": "integer",
                 "description": (
-                    "Number of frames for spritesheet mode (default 4, max 6). "
+                    "Number of frames for spritesheet mode (default 4, max 8). "
                     "Ignored if spritesheet is false."
                 ),
             },
@@ -273,7 +273,9 @@ async def _dispatch_tool(
         asset_name = tool_input.get("asset_name", "")
         prompt = tool_input.get("prompt", "")
         if not asset_name or not prompt:
-            return "ERROR: generate_3d_asset requires 'asset_name' and 'prompt' parameters"
+            return (
+                "ERROR: generate_3d_asset requires 'asset_name' and 'prompt' parameters"
+            )
         dest = game_dir / "assets" / "models" / f"{asset_name}.glb"
 
         try:
@@ -325,7 +327,9 @@ async def _dispatch_tool(
         target_w = tool_input.get("target_width")
         target_h = tool_input.get("target_height")
         if not asset_name or not prompt:
-            return "ERROR: generate_2d_asset requires 'asset_name' and 'prompt' parameters"
+            return (
+                "ERROR: generate_2d_asset requires 'asset_name' and 'prompt' parameters"
+            )
 
         # Build per-call post-process config with optional LLM-specified size
         post_process = PostProcessConfig(
@@ -356,17 +360,17 @@ async def _dispatch_tool(
                     f"{n} frames, {fw}x{fh} each). "
                     f"{remaining} asset(s) remaining.\n"
                     f"Load in GDScript as AnimatedSprite2D:\n"
-                    f'  var frames = SpriteFrames.new()\n'
+                    f"  var frames = SpriteFrames.new()\n"
                     f'  var tex = load("{res_path}")\n'
-                    f'  for i in range({n}):\n'
-                    f'      var atlas = AtlasTexture.new()\n'
-                    f'      atlas.atlas = tex\n'
-                    f'      atlas.region = Rect2(i * {fw}, 0, {fw}, {fh})\n'
+                    f"  for i in range({n}):\n"
+                    f"      var atlas = AtlasTexture.new()\n"
+                    f"      atlas.atlas = tex\n"
+                    f"      atlas.region = Rect2(i * {fw}, 0, {fw}, {fh})\n"
                     f'      frames.add_frame("default", atlas)\n'
-                    f'  var anim_sprite = AnimatedSprite2D.new()\n'
-                    f'  anim_sprite.sprite_frames = frames\n'
+                    f"  var anim_sprite = AnimatedSprite2D.new()\n"
+                    f"  anim_sprite.sprite_frames = frames\n"
                     f'  anim_sprite.play("default")\n'
-                    f'  add_child(anim_sprite)'
+                    f"  add_child(anim_sprite)"
                 )
             else:
                 asset = await image_gen.generate(
@@ -384,9 +388,9 @@ async def _dispatch_tool(
                     f"OK: generated {res_path} ({asset.image.width}x{asset.image.height}). "
                     f"{remaining} asset(s) remaining.\n"
                     f"Load in GDScript:\n"
-                    f'  var sprite = Sprite2D.new()\n'
+                    f"  var sprite = Sprite2D.new()\n"
                     f'  sprite.texture = load("{res_path}")\n'
-                    f'  add_child(sprite)'
+                    f"  add_child(sprite)"
                 )
         except ImageGenError as e:
             logger.error("generate_2d_asset failed for %s: %s", asset_name, e)
@@ -779,7 +783,9 @@ async def run_file_generation(
         initial_content = fix_context
     else:
         initial_content = _build_initial_prompt(
-            spec, has_3d_assets=use_3d_assets, has_2d_assets=use_2d_assets,
+            spec,
+            has_3d_assets=use_3d_assets,
+            has_2d_assets=use_2d_assets,
         )
     messages: list[dict] = [{"role": "user", "content": initial_content}]
 

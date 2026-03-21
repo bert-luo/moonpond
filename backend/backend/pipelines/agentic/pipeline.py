@@ -103,9 +103,7 @@ def _build_fix_context(
     if create_tasks:
         sections.append("## FILES TO CREATE\n")
         for t in create_tasks:
-            sections.append(
-                f"- **{t.file}**: {t.description}"
-            )
+            sections.append(f"- **{t.file}**: {t.description}")
 
     body = "\n\n".join(sections)
     return (
@@ -133,9 +131,9 @@ class AgenticPipeline:
         self,
         *,
         context_strategy: str = "full_history",
-        thinking: bool = False,
+        thinking: bool = True,
     ) -> None:
-        self._client = AsyncAnthropic()
+        self._client = AsyncAnthropic(max_retries=5)
         self._context_strategy = context_strategy
         self._thinking = thinking
 
@@ -286,7 +284,10 @@ class AgenticPipeline:
 
                 # Verify
                 verifier_result = await run_verifier(
-                    self._client, spec, all_files, emit,
+                    self._client,
+                    spec,
+                    all_files,
+                    emit,
                     generated_assets=generated_assets,
                 )
 
@@ -302,9 +303,15 @@ class AgenticPipeline:
 
                 # Filter tasks to address — all criticals plus gameplay warnings
                 _GAMEPLAY_KEYWORDS = {
-                    "non-functional", "broken", "will not work",
-                    "never called", "wrong position", "default position",
-                    "patrol", "spawn", "missing",
+                    "non-functional",
+                    "broken",
+                    "will not work",
+                    "never called",
+                    "wrong position",
+                    "default position",
+                    "patrol",
+                    "spawn",
+                    "missing",
                 }
 
                 def _should_fix(task):  # noqa: ANN001, ANN202
