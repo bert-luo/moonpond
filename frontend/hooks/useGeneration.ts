@@ -109,11 +109,11 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
           const controls: ControlMapping[] = Array.isArray(data.controls)
             ? data.controls
             : [];
-          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, controls });
+          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, jobId, controls });
         } catch {
           // Fallback if parsing fails
           const gameUrl = `${BACKEND}/games/${jobId}/export/index.html`;
-          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, controls: [] });
+          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, jobId, controls: [] });
         }
       });
 

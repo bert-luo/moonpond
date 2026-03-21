@@ -21,8 +21,6 @@ export default function Home() {
     submit(prompt, activeSession.id);
   };
 
-  const handleReset = () => dispatch({ type: 'RESET', sessionId: activeSession.id });
-
   return (
     <main className="flex h-screen relative">
       {showLanding && (
@@ -40,7 +38,7 @@ export default function Home() {
             onSelect={(idx) => dispatch({ type: 'SELECT_SESSION', idx })}
             onNew={() => dispatch({ type: 'NEW_SESSION' })}
           />
-          <ChatPanel session={activeSession} onSubmit={handleSubmit} onReset={handleReset} />
+          <ChatPanel session={activeSession} onSubmit={handleSubmit} />
         </div>
         {/* Right column: game viewer */}
         <div className="flex-1 flex items-center justify-center p-6 bg-black/20">

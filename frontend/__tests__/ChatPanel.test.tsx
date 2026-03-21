@@ -11,6 +11,7 @@ function makeSession(overrides: Partial<GameSession> = {}): GameSession {
     status: 'idle',
     messages: [],
     gameUrl: null,
+    jobId: null,
     controls: [],
     errorMessage: null,
     ...overrides,
@@ -28,13 +29,13 @@ function makeMessage(overrides: Partial<ChatMessage>): ChatMessage {
 
 describe('ChatPanel', () => {
   it('renders prompt input with placeholder', () => {
-    render(<ChatPanel session={makeSession()} onSubmit={vi.fn()} onReset={vi.fn()} />);
+    render(<ChatPanel session={makeSession()} onSubmit={vi.fn()} />);
     expect(screen.getByPlaceholderText(/Describe a game/)).toBeDefined();
   });
 
   it('disables input when status is generating', () => {
     render(
-      <ChatPanel session={makeSession({ status: 'generating' })} onSubmit={vi.fn()} onReset={vi.fn()} />
+      <ChatPanel session={makeSession({ status: 'generating' })} onSubmit={vi.fn()} />
     );
     const input = screen.getByPlaceholderText(/Describe a game/) as HTMLInputElement;
     expect(input.disabled).toBe(true);
@@ -45,13 +46,13 @@ describe('ChatPanel', () => {
       status: 'generating',
       messages: [makeMessage({ type: 'stage', text: 'Designing game...' })],
     });
-    render(<ChatPanel session={session} onSubmit={vi.fn()} onReset={vi.fn()} />);
+    render(<ChatPanel session={session} onSubmit={vi.fn()} />);
     expect(screen.getByText('Designing game...')).toBeDefined();
   });
 
   it('calls onSubmit with prompt text', () => {
     const onSubmit = vi.fn();
-    render(<ChatPanel session={makeSession()} onSubmit={onSubmit} onReset={vi.fn()} />);
+    render(<ChatPanel session={makeSession()} onSubmit={onSubmit} />);
     const input = screen.getByPlaceholderText(/Describe a game/) as HTMLInputElement;
     fireEvent.change(input, { target: { value: 'my game idea' } });
     fireEvent.submit(input.closest('form')!);
@@ -63,7 +64,7 @@ describe('ChatPanel', () => {
       status: 'error',
       messages: [makeMessage({ type: 'error', text: 'Something failed' })],
     });
-    render(<ChatPanel session={session} onSubmit={vi.fn()} onReset={vi.fn()} />);
+    render(<ChatPanel session={session} onSubmit={vi.fn()} />);
     const errorEl = screen.getByText('Something failed');
     expect(errorEl.closest('div')?.className).toContain('bg-red-900/30');
   });
@@ -79,7 +80,7 @@ describe('ChatPanel', () => {
         }),
       ],
     });
-    render(<ChatPanel session={session} onSubmit={vi.fn()} onReset={vi.fn()} />);
+    render(<ChatPanel session={session} onSubmit={vi.fn()} />);
     expect(screen.getByText('Cool Game')).toBeDefined();
     expect(screen.getByText('A really cool game')).toBeDefined();
   });
@@ -95,7 +96,7 @@ describe('ChatPanel', () => {
         }),
       ],
     });
-    render(<ChatPanel session={session} onSubmit={vi.fn()} onReset={vi.fn()} />);
+    render(<ChatPanel session={session} onSubmit={vi.fn()} />);
     expect(screen.getByTestId('file-name').textContent).toBe('player.gd');
     expect(screen.getByTestId('file-lines').textContent).toContain('42');
   });
@@ -111,7 +112,7 @@ describe('ChatPanel', () => {
         }),
       ],
     });
-    render(<ChatPanel session={session} onSubmit={vi.fn()} onReset={vi.fn()} />);
+    render(<ChatPanel session={session} onSubmit={vi.fn()} />);
     expect(screen.getByText('Arrow Keys')).toBeDefined();
     expect(screen.getByText('Move')).toBeDefined();
     expect(screen.getByText('Space')).toBeDefined();
@@ -125,7 +126,7 @@ describe('ChatPanel', () => {
       controls: [{ key: 'W', action: 'Up' }],
       messages: [makeMessage({ type: 'complete', text: 'Your game is ready!' })],
     });
-    const { container } = render(<ChatPanel session={session} onSubmit={vi.fn()} onReset={vi.fn()} />);
+    const { container } = render(<ChatPanel session={session} onSubmit={vi.fn()} />);
     // The old standalone controls block had an uppercase "Controls" heading outside the message loop
     // With the new design, "Controls" heading only appears inside a controls-type message
     const controlsHeadings = container.querySelectorAll('h3');

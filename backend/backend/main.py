@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import uuid
+import zipfile
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,6 +15,7 @@ load_dotenv(Path(__file__).parent.parent.parent / ".env")
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -151,6 +154,33 @@ async def stream(job_id: str):
             active_jobs.pop(job_id, None)
             return
         yield ServerSentEvent(raw_data=event.model_dump_json(), event=event.type)
+
+
+@app.get("/api/export/{job_id}")
+async def export_game(job_id: str):
+    """Zip the export directory for a completed game and return it as a download."""
+    # Find the game directory — job_id may be a UUID prefix of the actual dir name
+    matches = [d for d in GAMES_DIR.iterdir() if d.is_dir() and job_id in d.name]
+    if not matches:
+        raise HTTPException(status_code=404, detail="Game not found")
+    game_dir = matches[0]
+    export_dir = game_dir / "export"
+    if not export_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Export not ready")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for file in export_dir.rglob("*"):
+            if file.is_file():
+                zf.write(file, file.relative_to(export_dir))
+    buf.seek(0)
+
+    filename = game_dir.name + ".zip"
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # Mount static files AFTER route definitions (defensive ordering)

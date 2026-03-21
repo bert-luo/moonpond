@@ -31,7 +31,7 @@ export function GameTabs({ sessions, activeIdx, onSelect, onNew }: GameTabsProps
       <button
         type="button"
         onClick={onNew}
-        className="px-3 py-2.5 text-lg text-[var(--color-text-muted)] hover:text-[var(--color-accent)] transition-colors flex-shrink-0"
+        className="px-3 py-2.5 text-lg text-[var(--color-text-muted)] hover:text-[var(--color-accent)] hover:bg-[var(--color-surface)] transition-none flex-shrink-0"
         aria-label="New game"
       >
         +

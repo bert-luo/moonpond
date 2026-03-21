@@ -3,13 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import type { GameSession, ControlMapping } from '@/types/generation';
 
+const BACKEND = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8000';
+
 interface ChatPanelProps {
   session: GameSession;
   onSubmit: (prompt: string) => void;
-  onReset: () => void;
 }
 
-export function ChatPanel({ session, onSubmit, onReset }: ChatPanelProps) {
+export function ChatPanel({ session, onSubmit }: ChatPanelProps) {
   const [prompt, setPrompt] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -33,12 +34,6 @@ export function ChatPanel({ session, onSubmit, onReset }: ChatPanelProps) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
-    }
-  };
-
-  const handleFocus = () => {
-    if (session.status === 'done') {
-      onReset();
     }
   };
 
@@ -121,29 +116,41 @@ export function ChatPanel({ session, onSubmit, onReset }: ChatPanelProps) {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input area */}
-      <form
-        onSubmit={handleSubmit}
-        className="px-4 py-3 border-t border-[var(--color-border)] flex gap-2"
-      >
-        <input
-          type="text"
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={handleFocus}
-          placeholder="Describe a game... e.g. A space shooter where you dodge asteroids"
-          disabled={session.status === 'generating'}
-          className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm font-light tracking-wide text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50 transition-colors"
-        />
-        <button
-          type="submit"
-          disabled={session.status === 'generating' || !prompt.trim()}
-          className="bg-[var(--color-accent)] text-white font-light tracking-wide px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
+      {/* Bottom area */}
+      {session.status === 'done' && session.jobId ? (
+        <div className="px-4 py-3 border-t border-[var(--color-border)]">
+          <a
+            href={`${BACKEND}/api/export/${session.jobId}`}
+            download
+            className="flex items-center justify-center gap-2 w-full bg-[var(--color-accent)] text-white font-light tracking-wide px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export Game
+          </a>
+        </div>
+      ) : session.status !== 'done' && (
+        <form
+          onSubmit={handleSubmit}
+          className="px-4 py-3 border-t border-[var(--color-border)] flex gap-2"
         >
-          {session.status === 'generating' ? 'Generating...' : 'Generate'}
-        </button>
-      </form>
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Describe a game... e.g. A space shooter where you dodge asteroids"
+            disabled={session.status === 'generating'}
+            className="flex-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg px-3 py-2 text-sm font-light tracking-wide text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-accent)] disabled:opacity-50 transition-colors"
+          />
+          <button
+            type="submit"
+            disabled={session.status === 'generating' || !prompt.trim()}
+            className="bg-[var(--color-accent)] text-white font-light tracking-wide px-4 py-2 rounded-lg text-sm hover:opacity-90 disabled:opacity-40 transition-opacity"
+          >
+            {session.status === 'generating' ? 'Generating...' : 'Generate'}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
