@@ -58,12 +58,18 @@ async def run_exporter(
     export_dir = GAMES_DIR / game_dir / "export"
 
     # Copy the base template (dirs_exist_ok=True per Pitfall 6)
-    shutil.copytree(get_template_dir(perspective), project_dir, dirs_exist_ok=True)
+    try:
+        shutil.copytree(get_template_dir(perspective), project_dir, dirs_exist_ok=True)
+    except OSError as e:
+        raise RuntimeError(f"Failed to copy template to {project_dir}: {e}") from e
 
     # Write generated files into the project
     # .tscn and .gd files go to project root (matching res:// paths in generated code)
     for filename, content in files.items():
-        (project_dir / filename).write_text(content)
+        try:
+            (project_dir / filename).write_text(content)
+        except OSError as e:
+            raise RuntimeError(f"Failed to write {filename}: {e}") from e
 
     # Run Godot headless export
     result = await run_headless_export(project_dir, export_dir)

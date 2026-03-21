@@ -200,8 +200,10 @@ async def run_verifier(
         messages=[{"role": "user", "content": _build_verifier_prompt(spec, files, generated_assets)}],
     )
 
-    # Extract the tool call input — guaranteed by tool_choice
-    tool_block = next(b for b in response.content if b.type == "tool_use")
+    # Extract the tool call input — expected via tool_choice
+    tool_block = next((b for b in response.content if b.type == "tool_use"), None)
+    if tool_block is None:
+        raise RuntimeError("Verifier: LLM response missing expected tool_use block")
     result = VerifierResult.model_validate(tool_block.input)
 
     task_count = len(result.tasks)

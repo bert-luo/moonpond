@@ -970,6 +970,15 @@ async def run_file_generation(
                             )
                         )
 
+            # Clear the asset stage message so the right panel doesn't stay
+            # stuck on "Generating asset..." while the LLM continues.
+            await emit(
+                ProgressEvent(
+                    type="stage_start",
+                    message="Generating files...",
+                )
+            )
+
         # Defensive: no tool results means nothing to continue with
         if not tool_results:
             break

@@ -471,7 +471,10 @@ class ImageGenClient:
         if not b64_data:
             raise ImageGenError("No image data returned from API")
 
-        image_bytes = base64.b64decode(b64_data)
+        try:
+            image_bytes = base64.b64decode(b64_data)
+        except Exception as e:
+            raise ImageGenError(f"Failed to decode image data: {e}") from e
         return Image.open(io.BytesIO(image_bytes)).convert("RGBA")
 
     async def _call_edit_api(
@@ -510,7 +513,10 @@ class ImageGenClient:
         if not b64_data:
             raise ImageGenError("No image data returned from edit API")
 
-        image_bytes = base64.b64decode(b64_data)
+        try:
+            image_bytes = base64.b64decode(b64_data)
+        except Exception as e:
+            raise ImageGenError(f"Failed to decode image data: {e}") from e
         return Image.open(io.BytesIO(image_bytes)).convert("RGBA")
 
     # ── Prompt engineering ────────────────────────────────────────────────

@@ -156,8 +156,10 @@ async def run_spec_generator(
         messages=[{"role": "user", "content": prompt}],
     )
 
-    # Extract the tool call input — guaranteed by tool_choice
-    tool_block = next(b for b in response.content if b.type == "tool_use")
+    # Extract the tool call input — expected via tool_choice
+    tool_block = next((b for b in response.content if b.type == "tool_use"), None)
+    if tool_block is None:
+        raise RuntimeError("Spec generator: LLM response missing expected tool_use block")
     result = AgenticGameSpec.model_validate(tool_block.input)
 
     await emit(ProgressEvent(

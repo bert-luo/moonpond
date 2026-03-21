@@ -62,17 +62,24 @@ async def run_headless_export(
     output_path = output_dir / "index.html"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    proc = await asyncio.create_subprocess_exec(
-        GODOT_BIN,
-        "--headless",
-        "--path",
-        str(project_path),
-        "--export-release",
-        preset_name,
-        str(output_path),
-        stdout=DEVNULL,
-        stderr=PIPE,
-    )
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            GODOT_BIN,
+            "--headless",
+            "--path",
+            str(project_path),
+            "--export-release",
+            preset_name,
+            str(output_path),
+            stdout=DEVNULL,
+            stderr=PIPE,
+        )
+    except (FileNotFoundError, OSError) as e:
+        return RunResult(
+            success=False,
+            stderr=f"Failed to launch Godot binary ({GODOT_BIN}): {e}",
+            output_path=None,
+        )
 
     _, raw_stderr = await proc.communicate()
     stderr_text = raw_stderr.decode(errors="replace") if raw_stderr else ""

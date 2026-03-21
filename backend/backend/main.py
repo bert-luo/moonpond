@@ -21,7 +21,7 @@ from starlette.responses import Response
 
 from .models.requests import GenerateRequest
 from .models.responses import GenerateResponse
-from .pipelines.base import SoftTimeout
+from .pipelines.base import ProgressEvent, SoftTimeout
 from .pipelines.registry import PIPELINES
 from .state import active_jobs
 
@@ -112,8 +112,19 @@ async def generate(
                 save_intermediate=req.save_intermediate,
                 soft_timeout=soft_timeout,
             )
+        except Exception as exc:
+            # Pipeline should emit its own error, but catch anything that slips through
+            try:
+                await emit(ProgressEvent(type="error", message=str(exc)))
+            except Exception:
+                pass  # queue may already be dead
         finally:
             soft_timeout.cancel()
+            # Always send sentinel so the SSE stream terminates
+            try:
+                await queue.put(None)
+            except Exception:
+                pass
 
     background_tasks.add_task(run_pipeline)
     return GenerateResponse(job_id=job_id)
@@ -137,7 +148,7 @@ async def stream(job_id: str):
             yield ServerSentEvent(comment="ping")
             continue
         if event is None:
-            del active_jobs[job_id]
+            active_jobs.pop(job_id, None)
             return
         yield ServerSentEvent(raw_data=event.model_dump_json(), event=event.type)
 

@@ -117,13 +117,30 @@ class TripoAssetGenerator:
         """Poll GET /task/{task_id} until terminal status. Returns GLB download URL."""
         delay = POLL_INITIAL_DELAY
         elapsed = 0.0
+        consecutive_errors = 0
 
         while elapsed < POLL_TIMEOUT:
-            resp = await client.get(
-                f"{TRIPO_BASE_URL}/task/{task_id}",
-                headers=self._headers,
-            )
-            resp.raise_for_status()
+            try:
+                resp = await client.get(
+                    f"{TRIPO_BASE_URL}/task/{task_id}",
+                    headers=self._headers,
+                )
+                resp.raise_for_status()
+                consecutive_errors = 0  # reset on success
+            except (httpx.HTTPStatusError, httpx.TransportError) as e:
+                consecutive_errors += 1
+                if consecutive_errors >= 3:
+                    raise TripoError(
+                        f"Tripo poll failed after 3 consecutive errors: {e}"
+                    ) from e
+                logger.warning(
+                    "Tripo poll error (attempt %d/3): %s", consecutive_errors, e
+                )
+                await asyncio.sleep(delay)
+                elapsed += delay
+                delay = min(delay * 1.5, POLL_MAX_DELAY)
+                continue
+
             data = resp.json()
 
             if data.get("code") != 0:
@@ -154,9 +171,18 @@ class TripoAssetGenerator:
     async def _download_glb(
         self, client: httpx.AsyncClient, url: str, dest: Path
     ) -> None:
-        """Download a GLB file from the given URL."""
-        async with client.stream("GET", url, timeout=60.0) as resp:
-            resp.raise_for_status()
-            with open(dest, "wb") as f:
-                async for chunk in resp.aiter_bytes(chunk_size=8192):
-                    f.write(chunk)
+        """Download a GLB file from the given URL.
+
+        Writes to a temp file first to avoid leaving partial files on failure.
+        """
+        tmp = dest.with_suffix(".glb.tmp")
+        try:
+            async with client.stream("GET", url, timeout=60.0) as resp:
+                resp.raise_for_status()
+                with open(tmp, "wb") as f:
+                    async for chunk in resp.aiter_bytes(chunk_size=8192):
+                        f.write(chunk)
+            tmp.rename(dest)
+        except BaseException:
+            tmp.unlink(missing_ok=True)
+            raise
