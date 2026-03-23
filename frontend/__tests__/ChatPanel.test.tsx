@@ -11,7 +11,7 @@ function makeSession(overrides: Partial<GameSession> = {}): GameSession {
     status: 'idle',
     messages: [],
     gameUrl: null,
-    jobId: null,
+    gameDir: null,
     controls: [],
     errorMessage: null,
     ...overrides,

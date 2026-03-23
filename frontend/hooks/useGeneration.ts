@@ -109,11 +109,13 @@ export function useGeneration(dispatch: React.Dispatch<GenerationAction>) {
           const controls: ControlMapping[] = Array.isArray(data.controls)
             ? data.controls
             : [];
-          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, jobId, controls });
+          // Extract game directory name from gameUrl (e.g. /games/<gameDir>/export/index.html)
+          const gameDir = gameUrl.match(/\/games\/([^/]+)\//)?.[1] ?? '';
+          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, gameDir, controls });
         } catch {
           // Fallback if parsing fails
           const gameUrl = `${BACKEND}/games/${jobId}/export/index.html`;
-          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, jobId, controls: [] });
+          dispatch({ type: 'SSE_DONE', sessionId, gameUrl, gameDir: '', controls: [] });
         }
       });
 

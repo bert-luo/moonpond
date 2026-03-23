@@ -23,7 +23,7 @@ export interface GameSession {
   status: Status;
   messages: ChatMessage[];
   gameUrl: string | null;
-  jobId: string | null;
+  gameDir: string | null;
   controls: ControlMapping[];
   errorMessage: string | null;
 }
@@ -53,7 +53,7 @@ export function initialSession(): GameSession {
     status: 'idle',
     messages: [],
     gameUrl: null,
-    jobId: null,
+    gameDir: null,
     controls: [],
     errorMessage: null,
   };
@@ -74,7 +74,7 @@ export type GenerationAction =
   | { type: 'SSE_SPEC_COMPLETE'; sessionId: string; title: string; description: string }
   | { type: 'SSE_FILE_WRITTEN'; sessionId: string; filename: string; lines: number }
   | { type: 'SSE_ASSET_GENERATED'; sessionId: string; assetName: string; dim: string }
-  | { type: 'SSE_DONE'; sessionId: string; gameUrl: string; jobId: string; controls: ControlMapping[] }
+  | { type: 'SSE_DONE'; sessionId: string; gameUrl: string; gameDir: string; controls: ControlMapping[] }
   | { type: 'SSE_ERROR'; sessionId: string; message: string }
   | { type: 'RESET'; sessionId: string };
 
@@ -193,7 +193,7 @@ export function generationReducer(
           ...s,
           status: 'done' as const,
           gameUrl: action.gameUrl,
-          jobId: action.jobId,
+          gameDir: action.gameDir,
           controls: action.controls,
           messages: [
             ...s.messages,

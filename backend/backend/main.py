@@ -156,14 +156,12 @@ async def stream(job_id: str):
         yield ServerSentEvent(raw_data=event.model_dump_json(), event=event.type)
 
 
-@app.get("/api/export/{job_id}")
-async def export_game(job_id: str):
+@app.get("/api/export/{game_dir_name}")
+async def export_game(game_dir_name: str):
     """Zip the export directory for a completed game and return it as a download."""
-    # Find the game directory — job_id may be a UUID prefix of the actual dir name
-    matches = [d for d in GAMES_DIR.iterdir() if d.is_dir() and job_id in d.name]
-    if not matches:
+    game_dir = GAMES_DIR / game_dir_name
+    if not game_dir.is_dir():
         raise HTTPException(status_code=404, detail="Game not found")
-    game_dir = matches[0]
     export_dir = game_dir / "export"
     if not export_dir.is_dir():
         raise HTTPException(status_code=404, detail="Export not ready")

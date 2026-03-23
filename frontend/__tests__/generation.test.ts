@@ -24,7 +24,7 @@ function makeSession(overrides: Partial<GameSession> = {}): GameSession {
     status: 'idle',
     messages: [],
     gameUrl: null,
-    jobId: null,
+    gameDir: null,
     controls: [],
     errorMessage: null,
     ...overrides,
@@ -132,7 +132,7 @@ describe('generationReducer', () => {
       type: 'SSE_DONE',
       sessionId: 's0',
       gameUrl: 'http://example.com/game',
-      jobId: 'job-1',
+      gameDir: 'cool-game_20260101',
       controls,
     });
     expect(next.sessions[0].status).toBe('done');

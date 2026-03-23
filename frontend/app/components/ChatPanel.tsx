@@ -117,10 +117,10 @@ export function ChatPanel({ session, onSubmit }: ChatPanelProps) {
       </div>
 
       {/* Bottom area */}
-      {session.status === 'done' && session.jobId ? (
+      {session.status === 'done' && session.gameDir ? (
         <div className="px-4 py-3 border-t border-[var(--color-border)]">
           <a
-            href={`${BACKEND}/api/export/${session.jobId}`}
+            href={`${BACKEND}/api/export/${session.gameDir}`}
             download
             className="flex items-center justify-center gap-2 w-full bg-[var(--color-accent)] text-white font-light tracking-wide px-4 py-2.5 rounded-lg text-sm hover:opacity-90 transition-opacity"
           >
