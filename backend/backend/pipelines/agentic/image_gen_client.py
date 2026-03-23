@@ -18,14 +18,59 @@ from pathlib import Path
 
 import json
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, RateLimitError
 from PIL import Image
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "gpt-image-1-mini"
+DEFAULT_MODEL = "gpt-image-1.5"
 MAX_SPRITESHEET_FRAMES = 8
 ASSET_BUDGET = 20  # max assets per game
+
+# Rate-limit mitigation: token bucket allows bursts up to BUCKET_SIZE then
+# waits for the per-minute window to refill.  BUCKET_SIZE = rate_limit - 1
+# to leave headroom for transient timing issues.
+_BUCKET_SIZE = 4  # max burst (5/min limit minus 1 for safety)
+_BUCKET_REFILL_PERIOD = 60  # seconds — matches OpenAI's per-minute window
+_MAX_RETRIES = 5
+_BASE_RETRY_DELAY = 15  # seconds fallback for retry-after parsing
+
+
+class _TokenBucket:
+    """Simple async token bucket rate limiter."""
+
+    def __init__(self, capacity: int, refill_period: float) -> None:
+        self._capacity = capacity
+        self._refill_period = refill_period
+        self._tokens = capacity
+        self._lock = asyncio.Lock()
+        self._last_refill = 0.0
+
+    async def acquire(self) -> None:
+        while True:
+            async with self._lock:
+                now = asyncio.get_event_loop().time()
+                if self._last_refill == 0.0:
+                    self._last_refill = now
+
+                # Refill tokens if a full period has elapsed
+                elapsed = now - self._last_refill
+                if elapsed >= self._refill_period:
+                    self._tokens = self._capacity
+                    self._last_refill = now
+
+                if self._tokens > 0:
+                    self._tokens -= 1
+                    return
+
+                # No tokens — calculate wait until next refill
+                wait = self._refill_period - elapsed
+
+            logger.info("Rate-limit bucket empty, waiting %.0fs for refill", wait)
+            await asyncio.sleep(wait)
+
+
+_image_bucket = _TokenBucket(_BUCKET_SIZE, _BUCKET_REFILL_PERIOD)
 
 
 class AssetMode(str, Enum):
@@ -434,6 +479,16 @@ class ImageGenClient:
 
     # ── API call ──────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _parse_retry_after(error: RateLimitError) -> float | None:
+        """Extract retry delay from a 429 error message (e.g. 'try again in 12s')."""
+        import re
+        msg = str(error)
+        m = re.search(r"try again in (\d+(?:\.\d+)?)s", msg, re.IGNORECASE)
+        if m:
+            return float(m.group(1))
+        return None
+
     async def _call_api(
         self,
         prompt: str,
@@ -442,18 +497,27 @@ class ImageGenClient:
         quality: str = "medium",
     ) -> Image.Image:
         """Call OpenAI image generation API and return a PIL Image."""
-        try:
-            result = await self._client.images.generate(
-                model=self._model,
-                prompt=prompt,
-                size=size,
-                quality=quality,
-                output_format="png",
-                background="transparent",
-                n=1,
-            )
-        except Exception as e:
-            raise ImageGenError(f"OpenAI image generation failed: {e}") from e
+        for attempt in range(_MAX_RETRIES):
+            try:
+                await _image_bucket.acquire()
+                result = await self._client.images.generate(
+                    model=self._model,
+                    prompt=prompt,
+                    size=size,
+                    quality=quality,
+                    output_format="png",
+                    background="transparent",
+                    n=1,
+                )
+                break
+            except RateLimitError as e:
+                delay = self._parse_retry_after(e) or _BASE_RETRY_DELAY * (2 ** attempt)
+                if attempt == _MAX_RETRIES - 1:
+                    raise ImageGenError(f"OpenAI image generation rate limited after {_MAX_RETRIES} retries: {e}") from e
+                logger.warning("Rate limited (generate), retrying in %.0fs (attempt %d/%d)", delay, attempt + 1, _MAX_RETRIES)
+                await asyncio.sleep(delay)
+            except Exception as e:
+                raise ImageGenError(f"OpenAI image generation failed: {e}") from e
 
         b64_data = result.data[0].b64_json
         if not b64_data:
@@ -485,17 +549,27 @@ class ImageGenClient:
             img.save(buf, format="PNG")
             image_files.append((f"frame_{i}.png", buf.getvalue(), "image/png"))
 
-        try:
-            result = await self._client.images.edit(
-                model=self._model,
-                image=image_files if len(image_files) > 1 else image_files[0],
-                prompt=prompt,
-                size=size,
-                quality=quality,
-                n=1,
-            )
-        except Exception as e:
-            raise ImageGenError(f"OpenAI image edit failed: {e}") from e
+        img_arg = image_files if len(image_files) > 1 else image_files[0]
+        for attempt in range(_MAX_RETRIES):
+            try:
+                await _image_bucket.acquire()
+                result = await self._client.images.edit(
+                    model=self._model,
+                    image=img_arg,
+                    prompt=prompt,
+                    size=size,
+                    quality=quality,
+                    n=1,
+                )
+                break
+            except RateLimitError as e:
+                delay = self._parse_retry_after(e) or _BASE_RETRY_DELAY * (2 ** attempt)
+                if attempt == _MAX_RETRIES - 1:
+                    raise ImageGenError(f"OpenAI image edit rate limited after {_MAX_RETRIES} retries: {e}") from e
+                logger.warning("Rate limited (edit), retrying in %.0fs (attempt %d/%d)", delay, attempt + 1, _MAX_RETRIES)
+                await asyncio.sleep(delay)
+            except Exception as e:
+                raise ImageGenError(f"OpenAI image edit failed: {e}") from e
 
         b64_data = result.data[0].b64_json
         if not b64_data:
