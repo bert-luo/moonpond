@@ -41,7 +41,9 @@ WRITE_FILE_TOOL = {
     "name": "write_file",
     "description": (
         "Write a complete file to the game project. "
-        "Call this exactly once per turn with one complete file. "
+        "You may call this multiple times in a single response to write "
+        "independent files in parallel (e.g. two .gd scripts that don't "
+        "reference each other). "
         "filename must be a bare filename (e.g. 'player.gd', 'Main.tscn') "
         "with no directory prefix."
     ),
@@ -239,7 +241,9 @@ async def _dispatch_tool(
         if not filename or content is None:
             return "ERROR: write_file requires 'filename' and 'content' parameters"
         try:
-            (game_dir / filename).write_text(content)
+            dest = game_dir / filename
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(content)
             generated_files[filename] = content
             return f"OK: wrote {filename} ({len(content)} chars)"
         except Exception as e:
@@ -475,7 +479,7 @@ def build_generator_system_prompt(perspective: str = "2D") -> str:
     # Mission statement
     mission = (
         f"You are an expert Godot 4 game developer. Your job is to generate all files "
-        f"for a complete, playable {dim} game project one at a time by calling write_file."
+        f"for a complete, playable {dim} game project by calling write_file."
     )
 
     # Entity node types
@@ -613,6 +617,9 @@ add_child(), so any position-dependent logic in _ready() will see the default \
 
 IMPORTANT RULES:
 - Generate files in this order: main .gd scripts first, then scene files (.tscn), then auxiliary files.
+- You SHOULD call write_file multiple times in a single response for independent files \
+(e.g. two .gd scripts that don't reference each other, or multiple scene files for unrelated entities). \
+This reduces round-trips and speeds up generation. Only serialize writes when one file depends on another.
 - You MUST generate project.godot as one of your files. Do NOT generate export_presets.cfg or .import files.
 - Use Godot 4 GDScript syntax: @onready, @export, signal declarations with "signal name", \
 typed variables with "var x: Type", super() instead of .func(), etc.
@@ -632,6 +639,31 @@ code wastes tokens and may cause runtime errors.
 - Use only ASCII characters in UI text (Label.text, Button.text, etc.). Godot's default \
 font does not include Unicode symbols in WASM exports, so non-ASCII characters render as \
 missing glyphs.
+
+COLLISION LAYER/MASK RECIPE — use this standard 3-layer scheme for all games:
+  Layer 1: Player + Platforms (default) — player and all static/moving platforms
+  Layer 2: Enemies — all enemy bodies
+  Layer 3: Projectiles — player bullets/projectiles
+Setup per entity type:
+  Player:      collision_layer = 1, collision_mask = 1|2 (stands on platforms, touches enemies)
+  Platforms:   collision_layer = 1, collision_mask = 0 (passive — only other things collide with them)
+  Enemies:     collision_layer = 2, collision_mask = 1 (stands on platforms)
+  Projectiles: Use Area2D/Area3D with collision_layer = 3, collision_mask = 2 (detects enemies only)
+In _ready(), set layers explicitly:
+  set_collision_layer_value(1, false)  # clear default
+  set_collision_layer_value(2, true)   # set desired layer
+  set_collision_mask_value(1, false)   # clear default
+  set_collision_mask_value(2, true)    # set desired mask
+For Area2D/Area3D body_entered signals: the Area's MASK must match the target body's LAYER.
+
+ANIMATABLEBODY2D — when using AnimatableBody2D for moving platforms:
+  Always set sync_to_physics = true in _ready(). Without this, directly setting \
+position/global_position bypasses the physics engine and the platform will NOT carry \
+the player. Example:
+  func _ready():
+      sync_to_physics = true
+  func _physics_process(delta):
+      global_position.x += direction * speed * delta  # works with sync_to_physics
 
 PROJECT.GODOT — when generating project.godot, ALWAYS include these sections verbatim:
 
@@ -697,9 +729,9 @@ def _build_initial_prompt(
     return (
         f"Generate all files for this Godot 4 game project.\n\n"
         f"Game Specification:\n{spec_json}\n\n"
-        f"Start generating files now. Call write_file for each file, "
-        f"one at a time. Begin with the main gameplay scripts, then "
-        f"scene files (.tscn), then any auxiliary files.{asset_hint}"
+        f"Start generating files now. Begin with the main gameplay scripts, then "
+        f"scene files (.tscn), then any auxiliary files. Write independent files "
+        f"in a single response to speed up generation.{asset_hint}"
     )
 
 
@@ -821,17 +853,21 @@ async def run_file_generation(
         if response.stop_reason == "end_turn":
             break
 
-        # Process tool_use blocks — asset generation runs in parallel,
-        # everything else (write_file, read_file) runs sequentially.
+        # Process tool_use blocks — write_file and asset generation run in
+        # batch; read_file runs sequentially (its result may inform the LLM).
         tool_results: list[dict] = []
         asset_blocks: list = []
+        write_blocks: list = []
         for block in response.content:
             if block.type != "tool_use":
                 continue
             if block.name in _ASSET_TOOLS:
                 asset_blocks.append(block)
+            elif block.name == "write_file":
+                # Collect write_file calls for batch dispatch below
+                write_blocks.append(block)
             else:
-                # Sequential dispatch for write_file / read_file
+                # Sequential dispatch for read_file
                 result_str = await _dispatch_tool(
                     block.name,
                     block.input,
@@ -848,23 +884,41 @@ async def run_file_generation(
                         "content": result_str,
                     }
                 )
-                if block.name == "write_file":
-                    filename = block.input.get("filename", "unknown")
-                    content = block.input.get("content", "")
-                    line_count = content.count("\n") + 1 if content else 0
-                    logger.info(
-                        "file_generated: %s — content length=%d, lines=%d",
-                        filename,
-                        len(content),
-                        line_count,
-                    )
-                    await emit(
-                        ProgressEvent(
-                            type="file_generated",
-                            message=f"Generated {filename}",
-                            data={"filename": filename, "line_count": line_count},
-                        )
-                    )
+
+        # --- Batch write_file dispatch (instant disk writes) ---
+        for block in write_blocks:
+            result_str = await _dispatch_tool(
+                block.name,
+                block.input,
+                game_dir,
+                generated_files,
+                tripo=tripo,
+                image_gen=image_gen,
+                asset_counter=asset_counter,
+            )
+            tool_results.append(
+                {
+                    "type": "tool_result",
+                    "tool_use_id": block.id,
+                    "content": result_str,
+                }
+            )
+            filename = block.input.get("filename", "unknown")
+            content = block.input.get("content", "")
+            line_count = content.count("\n") + 1 if content else 0
+            logger.info(
+                "file_generated: %s — content length=%d, lines=%d",
+                filename,
+                len(content),
+                line_count,
+            )
+            await emit(
+                ProgressEvent(
+                    type="file_generated",
+                    message=f"Generated {filename}",
+                    data={"filename": filename, "line_count": line_count},
+                )
+            )
 
         # --- Parallel asset generation ---
         if asset_blocks:
